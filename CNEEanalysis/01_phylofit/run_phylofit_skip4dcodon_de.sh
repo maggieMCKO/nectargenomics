@@ -13,7 +13,7 @@
 WD="/home/mpg08/mko/Nectar/analysis/CNEEanalysis/"
 input_maf="${WD}multi.anno.maf"
 input_tree="${WD}NectarTree01.nw"
-chicken_anno="${WD}GCF_000002315.6_GRCg6a_genomic_chrtabFixed_CDS.gff" # chr need to match maf's chr
+chicken_anno="${WD}GCF_000002315.6_GRCg6a_genomic_chrtabFixed.gff" # chr need to match maf's chr
 
 out_DIR="${WD}01_phylofit/01_msa/"
 mkdir -p ${out_DIR}
