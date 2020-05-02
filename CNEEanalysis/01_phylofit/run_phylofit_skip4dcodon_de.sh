@@ -13,7 +13,7 @@
 WD="/home/mpg08/mko/Nectar/analysis/CNEEanalysis/"
 input_maf="${WD}multi.anno.maf"
 input_tree="${WD}NectarTree01.nw"
-chicken_anno="${WD}GRCg6a_genomic_chrtabFixed.gff" # chr need to match maf's chr
+chicken_anno="${WD}GCF_000002315.6_GRCg6a_genomic_chrtabFixed_CDS.gff" # chr need to match maf's chr
 
 out_DIR="${WD}01_phylofit/01_msa/"
 mkdir -p ${out_DIR}
@@ -31,10 +31,10 @@ msa_view_PATH="${phastPATH}msa_view"
 
 ##### RUN
 # extract 4d codons from an alignment
-${msa_view_PATH} ${input_maf} --4d --features ${chicken_anno} > ${codons_4d}
+# ${msa_view_PATH} ${input_maf} --4d --features ${chicken_anno} > ${codons_4d}
 
 # extract 4d sites from an alignment
-${msa_view_PATH} ${codons_4d} --in-format SS --out-format SS --tuple-size 1 > ${sites_4d}
+${msa_view_PATH} ${input_maf} --in-format MAF --out-format SS --tuple-size 1 > ${sites_4d}
 
 # estimate A nonconserved phylogenetic model
 ${phyloFit_PATH} --tree ${input_tree} --msa-format SS --out-root ${out_DIR_4d} ${sites_4d}
