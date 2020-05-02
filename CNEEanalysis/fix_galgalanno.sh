@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# trans_matrix=galgal6a_2315.6_acc.tsv
-# trans_matrix=galgal6a_2315.6_acc2.tsv
+trans_matrix=galgal6a_2315.6_acc.tsv
 input_ann=GCF_000002315.6_GRCg6a_genomic.gff
 
 fixed=${input_ann%%.gff}_chrtabFixed.gff
