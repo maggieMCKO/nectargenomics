@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --time=1:00:00
-#SBATCH --ntasks=4
-#SBATCH --mem-per-cpu=4g
+#SBATCH --time=6:00:00
+#SBATCH --ntasks=10
+# SBATCH --mem=40g
 #SBATCH --partition=medium
 #SBATCH -o phylofit_%A.out
 #SBATCH -e phylofit_%A.err
