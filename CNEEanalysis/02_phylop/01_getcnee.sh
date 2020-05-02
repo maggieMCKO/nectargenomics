@@ -3,17 +3,18 @@
 #### Building a set of consensus CNEEs from literature ####
 # based on: https://github.com/sjswuitchik/duck_comp_gen/blob/master/03a_cnee_analysis/01_assemble_cnees.sh
 
+### SETUP
 galgal6_gff=/home/mpg08/mko/Nectar/analysis/CNEEanalysis/GCF_000002315.6_GRCg6a_genomic.gff
 replace_chrs_perl=/home/mpg08/mko/Nectar/analysis/CNEEanalysis/01_phylofit/replace_chrs.pl
 trans_matrix=/home/mpg08/mko/Nectar/analysis/CNEEanalysis/01_phylofit/galgal6a_2315.6_acc5.tsv
 final_cnee=galGal6_final_merged_CNEEs_named_fixchr.bed
 
-
-# extract .gz
-# ls | grep .gz| xargs -n 1 -P 4 gunzip
-
 module purge
 module load BEDTOOLS/2.29.1
+
+### RUN
+# extract .gz
+# ls | grep .gz| xargs -n 1 -P 4 gunzip
 
 # get ce lengths
 awk '{print $3-$2, "\tLowe"}' galGal6_Lowe_merged.bed  >> ce.lengths
