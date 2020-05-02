@@ -15,7 +15,7 @@ input_maf="${WD}multi.anno.maf"
 input_tree="${WD}NectarTree01.nw"
 chicken_anno="${WD}GRCg6a_genomic_chrtabFixed.gff" # chr need to match maf's chr
 
-out_DIR="${WD}01_msa/"
+out_DIR="${WD}01_phylofit/01_msa/"
 mkdir -p ${out_DIR}
 codons_4d="${out_DIR}4d-codons.ss"
 sites_4d="${out_DIR}4d-sites.ss"
