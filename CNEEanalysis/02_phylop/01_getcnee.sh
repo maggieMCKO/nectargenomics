@@ -6,7 +6,7 @@
 ### SETUP
 galgal6_gff=/home/mpg08/mko/Nectar/analysis/CNEEanalysis/GCF_000002315.6_GRCg6a_genomic.gff
 replace_chrs_perl=/home/mpg08/mko/Nectar/analysis/CNEEanalysis/01_phylofit/replace_chrs.pl
-trans_matrix=/home/mpg08/mko/Nectar/analysis/CNEEanalysis/01_phylofit/galgal6a_2315.6_acc5.tsv
+trans_matrix=/home/mpg08/mko/Nectar/analysis/CNEEanalysis/01_phylofit/galgal6a_2315.3_acc5.tsv
 final_cnee=galGal6_final_merged_CNEEs_named_fixchr.bed
 
 module purge
