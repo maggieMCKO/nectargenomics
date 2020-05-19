@@ -3,9 +3,9 @@
 #SBATCH -n 1 # or --ntasks=1
 #SBATCH --mem=20g
 #SBATCH --partition=medium
-#SBATCH -o phylopSC_%A.out
-#SBATCH -e phylopSC_%A.err
-#SBATCH -J phylopSC
+#SBATCH -o phylopBC_%A.out
+#SBATCH -e phylopBC_%A.err
+#SBATCH -J phylopBC
 #SBATCH --mail-type=ALL        # BEGIN,END,FAIL,ALL
 #SBATCH --mail-user=mcko@orn.mpg.de
 
