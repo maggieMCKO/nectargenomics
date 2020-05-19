@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --time=3:00:00
 #SBATCH --ntasks=1
-#SBATCH --mem-per-cpu=4g
+#SBATCH --mem=20g
 #SBATCH --partition=medium
 #SBATCH -o phylop_%A.out
 #SBATCH -e phylop_%A.err
