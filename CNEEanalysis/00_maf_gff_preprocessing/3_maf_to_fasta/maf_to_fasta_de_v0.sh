@@ -20,7 +20,7 @@ FA_out_DIR="${maf_DIR}fasta/"
 
 ##### SETUP programs
 export phastPATH="/home/mpg08/mko/Tools/phast/bin/"
-export maf_parse_PATH="${phastPATH}maf_parse"
+export msa_view_PATH="${phastPATH}msa_view"
 
 ##### RUN
 Stem=$(basename $input_maf)
@@ -28,4 +28,4 @@ Stem_FA=${Stem/.maf/.fasta}
 FA_out="${FA_out_DIR}${Stem_FA}"
 
 # USAGE: maf_parse [OPTIONS] <infile>
-${maf_parse_PATH} ${input_maf} > ${FA_out}
+${msa_view_PATH} --out-format FASTA ${input_maf} > ${FA_out}
