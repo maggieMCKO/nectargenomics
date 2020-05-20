@@ -28,4 +28,4 @@ Stem_FA=${Stem/.maf/.fasta}
 FA_out="${FA_out_DIR}${Stem_FA}"
 
 # USAGE: maf_parse [OPTIONS] <infile>
-${msa_view_PATH} --out-format FASTA ${input_maf} > ${FA_out}
+${msa_view_PATH} --in-format MAF --out-format FASTA ${input_maf} > ${FA_out}
