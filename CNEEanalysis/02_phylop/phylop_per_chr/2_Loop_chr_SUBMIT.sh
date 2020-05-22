@@ -24,12 +24,12 @@ runPhyloPbyChr (){
         echo $chr_clean
 
         # # cnee lrt ####
-        in_sh="02_run_phylop_tmp_lrt_con_de_v2.sh"
+        in_sh="slurm_run_phylop_tmp_lrt_con_de_v2.sh"
         sbatch ${in_sh} ${tmp_bed} ${chr_clean} ${tmp_maf}
 
         # # cnee lrt branch
         tmp_br="HLlicCas1-HLacaPus1,HLtriMol2,HLcalAnn5-HLfloFus1"
-        in_sh="02_run_phylop_tmp_branch_lrt_con_cnee_de_v2.sh"
+        in_sh="slurm_run_phylop_tmp_branch_lrt_con_cnee_de_v2.sh"
         sbatch ${in_sh} ${tmp_br} ${tmp_bed} ${chr_clean} ${tmp_maf}
 
     fi
