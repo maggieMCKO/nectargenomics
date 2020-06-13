@@ -30,8 +30,9 @@ echo -e "method: ${method}"
 mode=CON
 echo -e "mode: ${mode}"
 
-mkdir -p out_branch
-features_out="out_branch/${chr}_${method}_${mode}_${tmp_branch}_cnee.wig"
+tmp_out_dir="out_branch/"
+mkdir -p ${tmp_out_dir}
+features_out="${tmp_out_dir}${chr}_${method}_${mode}_${tmp_branch}_cnee.tsv"
 echo -e "features_out: ${features_out}" # in WD
 
 ##### RUN

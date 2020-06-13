@@ -27,10 +27,37 @@ runPhyloPbyChr (){
         in_sh="slurm_run_phylop_tmp_lrt_con_de_v2.sh"
         sbatch ${in_sh} ${tmp_bed} ${chr_clean} ${tmp_maf}
 
-        # # cnee lrt branch
+        # # cnee lrt branch: nectar clade + thornbill
         tmp_br="HLlicCas1-HLacaPus1,HLtriMol2,HLcalAnn5-HLfloFus1"
         in_sh="slurm_run_phylop_tmp_branch_lrt_con_cnee_de_v2.sh"
         sbatch ${in_sh} ${tmp_br} ${tmp_bed} ${chr_clean} ${tmp_maf}
+
+        # # cnee lrt branch: nectar clade
+        tmp_br="HLlicCas1-HLphyNov1,HLtriMol2,HLcalAnn5-HLfloFus1"
+        in_sh="02_run_phylop_tmp_branch_lrt_conacc_cnee_de_v2.sh"
+        sbatch ${in_sh} ${tmp_br} ${tmp_bed} ${chr_clean} ${tmp_maf}
+
+        # # cnee lrt branch: honeyeaters + thornbill
+        tmp_br="HLlicCas1-HLacaPus1"
+        in_sh="02_run_phylop_tmp_branch_lrt_conacc_cnee_de_v2.sh"
+        sbatch ${in_sh} ${tmp_br} ${tmp_bed} ${chr_clean} ${tmp_maf}
+
+        # # cnee lrt branch: lorikeet
+        tmp_br="HLtriMol2"
+        in_sh="02_run_phylop_tmp_branch_lrt_conacc_cnee_de_v2.sh"
+        sbatch ${in_sh} ${tmp_br} ${tmp_bed} ${chr_clean} ${tmp_maf}
+
+        # # cnee lrt branch: hummingbirds
+        tmp_br="HLcalAnn5-HLfloFus1"
+        in_sh="02_run_phylop_tmp_branch_lrt_conacc_cnee_de_v2.sh"
+        sbatch ${in_sh} ${tmp_br} ${tmp_bed} ${chr_clean} ${tmp_maf}
+
+        # # cnee lrt branch: honeyeaters
+        tmp_br="HLlicCas1-HLphyNov1"
+        in_sh="02_run_phylop_tmp_branch_lrt_conacc_cnee_de_v2.sh"
+        sbatch ${in_sh} ${tmp_br} ${tmp_bed} ${chr_clean} ${tmp_maf}
+
+        sleep 1
 
     fi
 }

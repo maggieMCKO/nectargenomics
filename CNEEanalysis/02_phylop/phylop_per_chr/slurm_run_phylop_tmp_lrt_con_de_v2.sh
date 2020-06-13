@@ -27,9 +27,9 @@ echo -e "method: ${method}"
 mode=CON
 echo -e "mode: ${mode}"
 
-mkdir -p out
-
-features_out="out/${chr}_${method}_${mode}_cnee.wig"
+tmp_out_dir="out/"
+mkdir -p ${tmp_out_dir}
+features_out="${tmp_out_dir}${chr}_${method}_${mode}_cnee.tsv"
 echo -e "features_out: ${features_out}" # current WD
 
 ##### RUN
