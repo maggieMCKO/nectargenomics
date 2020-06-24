@@ -4,6 +4,7 @@
 Tools and scripts used in the annotation pipeline
 
 ### Tools:
+```
 GenomeThreader
 TAMA-GO (optional)
 BUSCO
@@ -16,8 +17,9 @@ blastp
 samtools
 Stringtie
 TransDecoder (optional)
-
+```
 ### Scripts:
+```
 align2hints.pl (augustus)
 join_mult_hints.pl (augustus)
 augustus.pl (augustus)
@@ -34,14 +36,12 @@ keepOnlyCDSgenes.pl (David) (TAMA only)
 filter_fasta_with_blast.py (Katya)
 filter_bed_with_fasta.py (Katya)
 getOverlappingTranscripts.py (Katya)
-
 getUniqTranscripts.py (Katya)
-
 add_utrs_from_stringtie.py (Katya)
-
-
+```
+```
 ALL_SPECIES_LIST=birds_to_annotate.lst
-
+```
 ## Building pairwise alignments to reference (chains)
 
 ## Making TOGA projections
