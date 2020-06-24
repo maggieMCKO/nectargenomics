@@ -34,7 +34,9 @@ keepOnlyCDSgenes.pl (David) (TAMA only)
 filter_fasta_with_blast.py (Katya)
 filter_bed_with_fasta.py (Katya)
 getOverlappingTranscripts.py (Katya)
+
 getUniqTranscripts.py (Katya)
+
 add_utrs_from_stringtie.py (Katya)
 
 
