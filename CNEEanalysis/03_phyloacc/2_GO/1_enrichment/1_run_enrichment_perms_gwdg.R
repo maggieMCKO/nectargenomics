@@ -104,18 +104,60 @@ compute_go_results <- function(DF, outname, CORES, PERMS) {
                            OrgDb = "org.Gg.eg.db")
     set1 = set1 %>% left_join(set1_ncbi, by = c("sym" = "SYMBOL"))
     
+    set2 <- cnee %>% filter(gene != ".", filter_non_target_honey2anc) %>% 
+      dplyr::select(gene) %>% 
+      # separate(gene, into=c("ncbi", "sym"), sep=":") %>% 
+      separate(gene, into=c("useless", "sym"), sep="-") %>%
+      distinct(sym)
+    set2_ncbi = bitr(set2$sym, fromType = "SYMBOL", toType = "ENTREZID",
+                     OrgDb = "org.Gg.eg.db")
+    set2 = set2 %>% left_join(set2_ncbi, by = c("sym" = "SYMBOL"))
+    
+    set3 <- cnee %>% filter(gene != ".", filter_non_target_honey2) %>% 
+      dplyr::select(gene) %>% 
+      # separate(gene, into=c("ncbi", "sym"), sep=":") %>% 
+      separate(gene, into=c("useless", "sym"), sep="-") %>%
+      distinct(sym)
+    set3_ncbi = bitr(set3$sym, fromType = "SYMBOL", toType = "ENTREZID",
+                     OrgDb = "org.Gg.eg.db")
+    set3 = set3 %>% left_join(set3_ncbi, by = c("sym" = "SYMBOL"))
+    
+    set4 <- cnee %>% filter(gene != ".", filter_non_target_humm2anc) %>% 
+      dplyr::select(gene) %>% 
+      # separate(gene, into=c("ncbi", "sym"), sep=":") %>% 
+      separate(gene, into=c("useless", "sym"), sep="-") %>%
+      distinct(sym)
+    set4_ncbi = bitr(set4$sym, fromType = "SYMBOL", toType = "ENTREZID",
+                     OrgDb = "org.Gg.eg.db")
+    set4 = set4 %>% left_join(set4_ncbi, by = c("sym" = "SYMBOL"))
+    
+    set5 <- cnee %>% filter(gene != ".", filter_non_target_humm2) %>% 
+      dplyr::select(gene) %>% 
+      # separate(gene, into=c("ncbi", "sym"), sep=":") %>% 
+      separate(gene, into=c("useless", "sym"), sep="-") %>%
+      distinct(sym)
+    set5_ncbi = bitr(set5$sym, fromType = "SYMBOL", toType = "ENTREZID",
+                     OrgDb = "org.Gg.eg.db")
+    set5 = set5 %>% left_join(set5_ncbi, by = c("sym" = "SYMBOL"))
+    
+    set6 <- cnee %>% filter(gene != ".", filter_non_target_humm2_triMol) %>% 
+      dplyr::select(gene) %>% 
+      # separate(gene, into=c("ncbi", "sym"), sep=":") %>% 
+      separate(gene, into=c("useless", "sym"), sep="-") %>%
+      distinct(sym)
+    set6_ncbi = bitr(set6$sym, fromType = "SYMBOL", toType = "ENTREZID",
+                     OrgDb = "org.Gg.eg.db")
+    set6 = set6 %>% left_join(set6_ncbi, by = c("sym" = "SYMBOL"))
+    
     # set2 <- cnee %>% filter(gene != ".", crar) %>% 
-    #   dplyr::select(gene) %>% 
-    #   separate(gene, into=c("ncbi", "sym"), sep=":") %>% 
-    #   distinct(ncbi)
-    # 
-    # set3 <- cnee %>% filter(gene != ".", crar_dollo) %>% 
     #   dplyr::select(gene) %>% 
     #   separate(gene, into=c("ncbi", "sym"), sep=":") %>% 
     #   distinct(ncbi)
     
     # inputs <- list("rar" = set1, "crar" = set2, "crar_dollo" = set3)
-    inputs <- list("rar" = set1)
+    inputs <- list("rar" = set1, "filter_non_target_honey2anc" = set2, "filter_non_target_honey2" = set3, 
+                   "filter_non_target_humm2anc" = set4, "filter_non_target_humm2" = set5, 
+                   "filter_non_target_humm2_triMol" = set6)
     
     bp_res_all[[ver]] <- lapply(inputs, calc_enrich, background=background$ENTREZID, ont="BP") %>% 
       lapply(slot, name="result") %>% 
@@ -128,7 +170,13 @@ compute_go_results <- function(DF, outname, CORES, PERMS) {
     merged_mf_terms <- mf_res_all[[ver]] %>% dplyr::distinct(ID)
     merged_bp_terms <- bp_res_all[[ver]] %>% dplyr::distinct(ID)
     
-    input_counts<-list("rar" = cnee %>% filter(gene != ".", rar) %>% count %>% pull(n))
+    input_counts<-list("rar" = cnee %>% filter(gene != ".", rar) %>% count %>% pull(n),
+                       "filter_non_target_honey2anc" = cnee %>% filter(gene != ".", filter_non_target_honey2anc) %>% count %>% pull(n),
+                       "filter_non_target_honey2" = cnee %>% filter(gene != ".", filter_non_target_honey2) %>% count %>% pull(n),
+                       "filter_non_target_humm2anc" = cnee %>% filter(gene != ".", filter_non_target_humm2anc) %>% count %>% pull(n),
+                       "filter_non_target_humm2" = cnee %>% filter(gene != ".", filter_non_target_humm2) %>% count %>% pull(n),
+                       "filter_non_target_humm2_triMol" = cnee %>% filter(gene != ".", filter_non_target_humm2_triMol) %>% count %>% pull(n)
+                       )
                        # "crar" = cnee %>% filter(gene != ".", crar) %>% count %>% pull(n),
                        # "crar_dollo" = cnee %>% filter(gene != ".", crar_dollo) %>% count %>% pull(n))
     
@@ -165,17 +213,26 @@ gene_gg = gene_gg[, c(4, 8)]
 names(gene_gg) = c("cnee", "gene")
 # there are duplicates in gene_gg
 
-# path = paste0(getwd(), "/Seq_Data/globus/CNEEanalysis/03_phyloacc/1_runphyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv")
-path = paste0("/home/mpg08/mko/Nectar/analysis/CNEEanalysis/03_phyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv") # gwdg
+# path = paste0(getwd(), "/Seq_Data/globus/CNEEanalysis/03_phyloacc/1_runphyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv.gz")
+path = paste0("/home/mpg08/mko/Nectar/analysis/CNEEanalysis/03_phyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv.gz") # gwdg
 cnee_orig_ori <- read_tsv(path) 
 names(cnee_orig_ori) = gsub("ID", "cnee", names(cnee_orig_ori))
 
 cnee_orig = cnee_orig_ori %>% 
-  dplyr::select(No., cnee, logBF1, logBF2) %>%
+  dplyr::select(No., cnee, logBF1, logBF2,
+                filter_non_target_honey2anc, filter_non_target_honey2, 
+                filter_non_target_humm2anc, filter_non_target_humm2, 
+                filter_non_target_humm2_triMol) %>%
   full_join(gene_gg, by=c("cnee" = "cnee")) %>%
   mutate(rar = ifelse(logBF1 >= 10 & logBF2 >= 1 , TRUE, FALSE)) %>%
   distinct(cnee, .keep_all=TRUE) %>% 
-  dplyr::select(cnee, rar, gene) %>%
+  dplyr::select(cnee, gene, rar,
+                filter_non_target_honey2anc, filter_non_target_honey2, 
+                filter_non_target_humm2anc, filter_non_target_humm2, 
+                filter_non_target_humm2_triMol
+                # filter_non_target_5sp, filter_non_target_humm2anc, filter_non_target_humm2, 
+                # filter_non_target_humm2anc_triMol, filter_non_target_humm2anc_honeyanc, filter_non_target_honey2anc_triMol
+                ) %>%
   mutate(version = "basic")
 rm(cnee_orig_ori)
 

@@ -14,23 +14,23 @@ chr_to_remove <- pos_gg4_uscs %>% count(chr) %>% filter(n < 150) %>% pull(chr)
 
 # path = paste0(getwd(), "/Seq_Data/globus/CNEEanalysis/03_phyloacc/1_runphyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv")
 path = paste0("/home/mpg08/mko/Nectar/analysis/CNEEanalysis/03_phyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv.gz") # gwdg
-cnee_orig_ori <- read_tsv(path) 
+cnee_orig_ori <- read_tsv(path)
 names(cnee_orig_ori) = gsub("ID", "cnee", names(cnee_orig_ori))
-cnee_orig = cnee_orig_ori %>% 
-  dplyr::select(No., cnee, logBF1, logBF2, 
-                filter_non_target_5sp, filter_non_target_humm2anc, filter_non_target_humm2, 
+cnee_orig = cnee_orig_ori %>%
+  dplyr::select(No., cnee, logBF1, logBF2,
+                filter_non_target_5sp, filter_non_target_humm2anc, filter_non_target_humm2,
                 filter_non_target_humm2anc_triMol, filter_non_target_humm2anc_honeyanc, filter_non_target_honey2anc_triMol) %>%
   full_join(pos_gg4_uscs, by=c("cnee" = "cnee")) %>%
   mutate(rar = ifelse(logBF1 >= 10 & logBF2 >= 1 , TRUE, FALSE)) %>%
-  distinct(cnee, .keep_all=TRUE) %>% 
-  dplyr::select(chr, start, end, cnee, rar, 
-                filter_non_target_5sp, filter_non_target_humm2anc, filter_non_target_humm2, 
+  distinct(cnee, .keep_all=TRUE) %>%
+  dplyr::select(chr, start, end, cnee, rar,
+                filter_non_target_5sp, filter_non_target_humm2anc, filter_non_target_humm2,
                 filter_non_target_humm2anc_triMol, filter_non_target_humm2anc_honeyanc, filter_non_target_honey2anc_triMol) %>%
   filter(!(chr %in% chr_to_remove)) %>%
   mutate(version = "basic")
 rm(cnee_orig_ori)
 
-# cnee_orig <- read_tsv("final_original_cnee.tsv.gz") %>% 
+# cnee_orig <- read_tsv("final_original_cnee.tsv.gz") %>%
 #   select(version, cnee, logBF1, logBF2, it_pp_loss, ti_pp_loss, neo_tip_loss, floss_cl_pp, floss_cl_pp_dollo) %>%
 #   full_join(pos_gg4_uscs, by=c("cnee" = "cnee")) %>%
 #   mutate(rar = ifelse(logBF1 >= 10 & logBF2 >= 1 & (it_pp_loss + ti_pp_loss) < 1 & neo_tip_loss < 1, TRUE, FALSE),
@@ -42,7 +42,7 @@ rm(cnee_orig_ori)
 
 
 #note in ext2, convergence defined as ratites + cormorants
-#cnee_ext2 <- read_tsv("final_extended_cnee.tsv.gz") %>% 
+#cnee_ext2 <- read_tsv("final_extended_cnee.tsv.gz") %>%
 #  select(version, cnee, logBF1, logBF2, it_pp_loss, ti_pp_loss, neo_tip_loss, #floss_cl_pp, floss_cl_pp_dollo, gc_pp_loss) %>%
 #  full_join(pos_gg4_uscs, by=c("cnee" = "cnee")) %>%
 #  mutate(rar = ifelse(logBF1 >= 10 & logBF2 >= 1 & (it_pp_loss + ti_pp_loss) < 1 & neo_tip_loss < 1, TRUE, FALSE),
@@ -104,9 +104,9 @@ compute_spatial_results <- function(DF, outname) {
     get_stats_for_window <- function(query_ranges, window_to_test) {
       window_df <- as.data.frame(window_to_test)
       stopifnot(length(window_df$seqnames)==1)
-      subsetByOverlaps(query_ranges, window_to_test) %>% 
-        as.data.frame %>% 
-        summarize(rar_n = sum(rar, na.rm=T), 
+      subsetByOverlaps(query_ranges, window_to_test) %>%
+        as.data.frame %>%
+        summarize(rar_n = sum(rar, na.rm=T),
                   filter_non_target_5sp_n = sum(filter_non_target_5sp, na.rm=T),
                   filter_non_target_humm2anc_n = sum(filter_non_target_humm2anc, na.rm=T),
                   filter_non_target_humm2_n = sum(filter_non_target_humm2, na.rm=T),
@@ -115,7 +115,7 @@ compute_spatial_results <- function(DF, outname) {
                   filter_non_target_honey2anc_triMol_n = sum(filter_non_target_honey2anc_triMol, na.rm=T),
                   # crar_dollo_n = sum(crar_dollo, na.rm=T),
                   total_n=n()) %>%
-        mutate(rar_pval = pbinom(q=rar_n, size=total_n, prob=rar_prob, lower.tail=FALSE) + 
+        mutate(rar_pval = pbinom(q=rar_n, size=total_n, prob=rar_prob, lower.tail=FALSE) +
                  dbinom(x=rar_n, size=total_n, prob=rar_prob),
                filter_non_target_5sp_pval = pbinom(q=filter_non_target_5sp_n, size=total_n, prob=filter_non_target_5sp_prob, lower.tail=FALSE) +
                  dbinom(x=filter_non_target_5sp_n, size=total_n, prob=filter_non_target_5sp_prob),
@@ -123,29 +123,29 @@ compute_spatial_results <- function(DF, outname) {
                  dbinom(x=filter_non_target_humm2anc_n, size=total_n, prob=filter_non_target_humm2anc_prob),
                filter_non_target_humm2_pval = pbinom(q=filter_non_target_humm2_n, size=total_n, prob=filter_non_target_humm2_prob, lower.tail=FALSE) +
                  dbinom(x=filter_non_target_humm2_n, size=total_n, prob=filter_non_target_humm2_prob),
-               filter_non_target_humm2anc_triMol_pval = pbinom(q=filter_non_target_humm2anc_triMol_n, 
+               filter_non_target_humm2anc_triMol_pval = pbinom(q=filter_non_target_humm2anc_triMol_n,
                                                                size=total_n, prob=filter_non_target_humm2anc_triMol_prob, lower.tail=FALSE) +
                  dbinom(x=filter_non_target_humm2anc_triMol_n, size=total_n, prob=filter_non_target_humm2anc_triMol_prob),
-               filter_non_target_humm2anc_honeyanc_pval = pbinom(q=filter_non_target_humm2anc_honeyanc_n, 
+               filter_non_target_humm2anc_honeyanc_pval = pbinom(q=filter_non_target_humm2anc_honeyanc_n,
                                                                  size=total_n, prob=filter_non_target_humm2anc_honeyanc_prob, lower.tail=FALSE) +
                  dbinom(x=filter_non_target_humm2anc_honeyanc_n, size=total_n, prob=filter_non_target_humm2anc_honeyanc_prob),
-               filter_non_target_honey2anc_triMol_pval = pbinom(q=filter_non_target_honey2anc_triMol_n, 
+               filter_non_target_honey2anc_triMol_pval = pbinom(q=filter_non_target_honey2anc_triMol_n,
                                                                 size=total_n, prob=filter_non_target_honey2anc_triMol_prob, lower.tail=FALSE) +
                  dbinom(x=filter_non_target_honey2anc_triMol_n, size=total_n, prob=filter_non_target_honey2anc_triMol_prob),
-               # crar_dollo_pval = pbinom(q=crar_dollo_n, size=total_n, prob=crar_dollo_prob, lower.tail=FALSE) + 
+               # crar_dollo_pval = pbinom(q=crar_dollo_n, size=total_n, prob=crar_dollo_prob, lower.tail=FALSE) +
                  # dbinom(x=crar_dollo_n, size=total_n, prob=crar_dollo_prob),
-               chr= window_df$seqnames, start=window_df$start, end=window_df$end) %>% 
-        select(chr, start, end, rar_n, 
+               chr= window_df$seqnames, start=window_df$start, end=window_df$end) %>%
+        select(chr, start, end, rar_n,
                filter_non_target_5sp_n, filter_non_target_humm2anc_n, filter_non_target_humm2_n,
                filter_non_target_humm2anc_triMol_n, filter_non_target_humm2anc_honeyanc_n, filter_non_target_honey2anc_triMol_n,
-               # crar_n, crar_dollo_n, 
-               total_n, rar_pval, 
+               # crar_n, crar_dollo_n,
+               total_n, rar_pval,
                filter_non_target_5sp_pval, filter_non_target_humm2anc_pval, filter_non_target_humm2_pval,
                filter_non_target_humm2anc_triMol_pval, filter_non_target_humm2anc_honeyanc_pval, filter_non_target_honey2anc_triMol_pval)
                # crar_pval, crar_dollo_pval)
     }
     
-    se_500kb<-lapply(1:length(windows_500kb), function(x) get_stats_for_window(cnee_ranges, windows_500kb[x])) %>% dplyr::bind_rows(.id="window") %>% 
+    se_500kb<-lapply(1:length(windows_500kb), function(x) get_stats_for_window(cnee_ranges, windows_500kb[x])) %>% dplyr::bind_rows(.id="window") %>%
       filter(total_n > 0)
     se_500kb$rar_qval <- p.adjust(se_500kb$rar_pval, "fdr")
     se_500kb$filter_non_target_5sp_qval <- p.adjust(se_500kb$filter_non_target_5sp_pval, "fdr")
@@ -158,7 +158,7 @@ compute_spatial_results <- function(DF, outname) {
     # se_500kb$crar_dollo_qval <- p.adjust(se_500kb$crar_dollo_pval, "fdr")
     se_500kb$window_size = "500kb"
     
-    se_100kb<-lapply(1:length(windows_100kb), function(x) get_stats_for_window(cnee_ranges, windows_100kb[x])) %>% dplyr::bind_rows(.id="window") %>% 
+    se_100kb<-lapply(1:length(windows_100kb), function(x) get_stats_for_window(cnee_ranges, windows_100kb[x])) %>% dplyr::bind_rows(.id="window") %>%
       filter(total_n > 0)
     se_100kb$rar_qval <- p.adjust(se_100kb$rar_pval, "fdr")
     se_100kb$filter_non_target_5sp_qval <- p.adjust(se_100kb$filter_non_target_5sp_pval, "fdr")
@@ -172,7 +172,7 @@ compute_spatial_results <- function(DF, outname) {
     se_100kb$window_size = "100kb"
     
     
-    se_1000kb<-lapply(1:length(windows_1000kb), function(x) get_stats_for_window(cnee_ranges, windows_1000kb[x])) %>% dplyr::bind_rows(.id="window") %>% 
+    se_1000kb<-lapply(1:length(windows_1000kb), function(x) get_stats_for_window(cnee_ranges, windows_1000kb[x])) %>% dplyr::bind_rows(.id="window") %>%
       filter(total_n > 0)
     se_1000kb$rar_qval <- p.adjust(se_1000kb$rar_pval, "fdr")
     se_1000kb$filter_non_target_5sp_qval <- p.adjust(se_1000kb$filter_non_target_5sp_pval, "fdr")
@@ -186,8 +186,8 @@ compute_spatial_results <- function(DF, outname) {
     se_1000kb$window_size = "1000kb"
     
     #sliding windows
-    se_slide<-lapply(1:length(windows_1Mb_slide), function(x) get_stats_for_window(cnee_ranges, windows_1Mb_slide[x])) %>% 
-      dplyr::bind_rows(.id="window") %>% 
+    se_slide<-lapply(1:length(windows_1Mb_slide), function(x) get_stats_for_window(cnee_ranges, windows_1Mb_slide[x])) %>%
+      dplyr::bind_rows(.id="window") %>%
       filter(total_n > 0)
     se_slide$rar_qval <- p.adjust(se_slide$rar_pval, "fdr")
     se_slide$filter_non_target_5sp_qval <- p.adjust(se_slide$filter_non_target_5sp_pval, "fdr")

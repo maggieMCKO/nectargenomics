@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-#SBATCH -t 0-01:00:00
+#SBATCH -t 0-00:30:00
 #SBATCH --mem 40g
 #SBATCH -p medium
 #SBATCH -n 1

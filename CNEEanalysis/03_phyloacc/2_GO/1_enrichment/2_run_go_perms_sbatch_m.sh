@@ -9,7 +9,7 @@
 
 # source ~/default_env.sh
 module load conda
-source activate R4_gwdg
+source activate R402_gwdg
 DATAPATH=/home/mpg08/mko/Nectar/analysis/CNEEanalysis/03_phyloacc/2_GO/1_enrichment
 Rscript run_enrichment_perms_gwdg.R galgal6 ${SLURM_ARRAY_TASK_ID} ${SLURM_NTASKS} 50 $DATAPATH
 # arg 1 annotation file name,

@@ -26,15 +26,18 @@ orig_bp <- read_tsv(paste0(path_to_data, "/goperms/original_GO_galgal6_run1_BP_r
 orig_mf <- read_tsv(paste0(path_to_data, "/goperms/original_GO_galgal6_run1_MF_real.tsv")) %>% transform_real()
 
 #read perms
-orig_bp_perm<-readRDS(paste0(path_to_data, "/goperms/original_galgal6_BP.robj"))
-orig_mf_perm<-readRDS(paste0(path_to_data, "/goperms/original_galgal6_MF.robj"))
+# orig_bp_perm<-readRDS(paste0(path_to_data, "/goperms/original_galgal6_BP.robj"))
+# orig_mf_perm<-readRDS(paste0(path_to_data, "/goperms/original_galgal6_MF.robj"))
+orig_bp_perm<-readRDS(paste0(path_to_data, "/goperms/original_galgal6_BP_2020-08-06.robj"))
+orig_mf_perm<-readRDS(paste0(path_to_data, "/goperms/original_galgal6_MF_2020-08-06.robj"))
 
 orig_bp_merge <- full_join(orig_bp, orig_bp_perm, by=c("version" = "version", "set" = "set", "ID" = "ID")) 
 orig_mf_merge <- full_join(orig_mf, orig_mf_perm, by=c("version" = "version", "set" = "set", "ID" = "ID"))
 
-orig_bp_perm_raw = read_csv(paste0(path_to_data, "/goperms/original_galgal6_BP_raw_2020-07-28.csv")) 
-orig_mf_perm_raw = read_csv(paste0(path_to_data, "/goperms/original_galgal6_MF_raw_2020-07-28.csv")) 
-
+# orig_bp_perm_raw = read_csv(paste0(path_to_data, "/goperms/original_galgal6_BP_raw_2020-07-28.csv")) 
+# orig_mf_perm_raw = read_csv(paste0(path_to_data, "/goperms/original_galgal6_MF_raw_2020-07-28.csv")) 
+orig_bp_perm_raw = read_csv(paste0(path_to_data, "/goperms/original_galgal6_BP_raw_2020-08-06.csv")) 
+orig_mf_perm_raw = read_csv(paste0(path_to_data, "/goperms/original_galgal6_MF_raw_2020-08-06.csv")) 
 
 #compute P-values
 
@@ -107,10 +110,14 @@ split_gene = function(input_df){
     genesymb = bitr(out, fromType = "ENTREZID", toType = "SYMBOL", OrgDb = org.Gg.eg.db);
     term =  tmp_row$Description ;
     goid = tmp_row$ID;
-    genesymb = genesymb %>% bind_cols(Description = term, ID = goid)}) 
+    genesymb = genesymb %>% bind_cols(Description = term, ID = goid) %>%
+      left_join(input_df %>% dplyr::select(version, set, ID))
+  }) 
+  df %>% bind_rows()
   }
 
 go_gene_list = lapply(list(bp, mf), split_gene) %>% bind_rows(.id = "gotype")
+dim(go_gene_list) # 1091    5 -> 1765    7
 
 # use biomaRt to get gene description
 # biomaRt https://www.bioconductor.org/packages/devel/bioc/vignettes/biomaRt/inst/doc/biomaRt.html
@@ -136,13 +143,34 @@ x =  getBM(attributes=c('entrezgene_id', 'description'),
       mart = ensembl_gg)
 x$entrezgene_id = as.character(x$entrezgene_id)
 
-go_gene_list2 = go_gene_list %>% dplyr::full_join(x, by = c("ENTREZID" = "entrezgene_id")) %>%  mutate(gotype = ifelse(grepl(1, gotype), "bp", "mf")) %>%
+# add gene name
+go_gene_list2 = go_gene_list %>% dplyr::full_join(x, by = c("ENTREZID" = "entrezgene_id")) %>%
+  mutate(gotype = ifelse(grepl(1, gotype), "bp", "mf")) %>%
   mutate(geneName = gsub(" \\[Source:NCBI.*", "", description)) %>%
-  dplyr::select(gotype, ENTREZID, SYMBOL, geneName, ID, Description) 
+  # dplyr::select(version, set, gotype, ENTREZID, SYMBOL, geneName, ID, Description) %>%
+  arrange(set)
+nrow(go_gene_list2) # 1765
+length(unique(go_gene_list2$SYMBOL)) # 60
+x = subset(go_gene_list2, su = set == 'rar')
+length(unique(x$ID)) # 133
+length(unique(x$SYMBOL)) # 57
+
+path = paste0(path_to_data, "/GO_annotated_", Sys.Date(), ".tsv")
+# write_tsv(go_gene_list2, path)
+# go_gene_list2 = read_tsv(path)
+
+
+go_gene_list2_cnee = go_gene_list2 %>% 
+  left_join(gene_gg, by = c("SYMBOL" = "gene")) %>% group_by(SYMBOL) %>% 
+  mutate(count_cnee = n()) 
+x = subset(go_gene_list2, su = set == 'rar')
+length(unique(x$ID)) # 133
+length(unique(x$SYMBOL)) # 57
 
 go_gene_list_uniq = go_gene_list2 %>% group_by(SYMBOL) %>%
   mutate(Terms = paste(Description, collapse = "; ")) %>% distinct(SYMBOL, .keep_all = TRUE) %>%
-  dplyr::select(-gotype, -Description) # 58
+  dplyr::select(-Description) # 58 # -gotype, 
+nrow(go_gene_list_uniq) # 60
 
 path = paste0(path_to_data, "/GOPERM_orig_combined_results_", Sys.Date(), ".tsv")
 # write_tsv(go_gene_list2, path)
@@ -154,6 +182,9 @@ path = paste0(path_to_data, "/GOPERM_orig_combined_results_uniq_", Sys.Date(), "
 go_gene_list_uniq_cnee = go_gene_list_uniq %>% 
   left_join(gene_gg, by = c("SYMBOL" = "gene")) %>% group_by(SYMBOL) %>% 
   mutate(count_cnee = n()) 
+length(unique(go_gene_list_uniq_cnee$SYMBOL)) # 60
+x = subset(go_gene_list_uniq_cnee, su = set == 'rar')
+length(unique(x$ID))
 
 path = paste0(path_to_data, "/GOPERM_orig_combined_results_uniq_cnee_long_", Sys.Date(), ".tsv")
 # write_tsv(go_gene_list_uniq_cnee, path)
@@ -169,16 +200,17 @@ path = paste0(path_to_data, "/GOPERM_orig_combined_results_uniq_cnee_", Sys.Date
 
 go = bp %>% bind_rows(mf, .id = 'gotype') %>% mutate(gotype = ifelse(grepl(1, gotype), "bp", "mf"))
 
-
-top10 = go %>% group_by(gotype) %>% 
+top10 = go %>% group_by(gotype, version, set) %>% 
   mutate(log10_p = -log10(pval_frac)) %>%
   slice_max(order_by = log10_p, n = 10)
+dim(top10) # 68 14
 
 go_gene_list_sub = go_gene_list2 %>% filter(ID %in% top10$ID)
+# go_gene_list_sub %>% group_by(gotype, version, set) %>% summarise(n = n())
 
 go_gene_list_sub_uniq = go_gene_list_sub %>% group_by(SYMBOL) %>%
   mutate(Terms = paste(Description, collapse = "; ")) %>% 
-  distinct(SYMBOL, .keep_all = TRUE) %>% dplyr::select(-gotype, -Description) # 31
+  distinct(SYMBOL, .keep_all = TRUE) %>% dplyr::select(-gotype, -Description) # 41
 
 path = paste0(path_to_data, "/GOPERM_orig_combined_results_top10_", Sys.Date(), ".tsv")
 # write_tsv(go_gene_list_sub, path)
@@ -194,12 +226,56 @@ go_gene_list_sub_uniq_cnee = go_gene_list_sub_uniq %>%
 path = paste0(path_to_data, "/GOPERM_orig_combined_results_top10_uniq_cnee_long_", Sys.Date(), ".tsv")
 # write_tsv(go_gene_list_sub_uniq_cnee, path)
 
+# collapse cnees
 go_gene_list_sub_uniq_cnee2 = go_gene_list_sub_uniq_cnee %>% 
   mutate(cnees = paste(cnee, collapse = "; ")) %>% 
   distinct(SYMBOL, .keep_all = TRUE) %>% dplyr::select(-cnee)
 
 path = paste0(path_to_data, "/GOPERM_orig_combined_results_top10_uniq_cnee_", Sys.Date(), ".tsv")
 # write_tsv(go_gene_list_sub_uniq_cnee2, path)
+
+## ====
+# path = paste0(path_to_data, '/goperms_2nd_try/GOPERM_orig_combined_results_uniq_cnee_long_2020-07-28.tsv')
+# go_gene_list_uniq_cnee = read_tsv(path)
+# 
+# # path = paste0(getwd(), "/Seq_Data/globus/CNEEanalysis/03_phyloacc/1_runphyloacc/1_run_phyloacc/rate_postZ_M2_combined_top1_1.txt")
+# # postZ = read_tsv(path) 
+# # dim(postZ) #  319511    242
+# 
+path = paste0(getwd(), "/Seq_Data/globus/CNEEanalysis/03_phyloacc/1_runphyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv.gz")
+# # path = paste0("/home/mpg08/mko/Nectar/analysis/CNEEanalysis/03_phyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv.gz") # gwdg
+cnee_orig_ori <- read_tsv(path)
+names(cnee_orig_ori) = gsub("ID", "cnee", names(cnee_orig_ori))
+
+ind = sapply(c("HLphyNov1", "HLlicCas1", "HLtriMol2", "HLcalAnn5", "HLfloFus1"), function(s){
+  x = paste0("^", s, "_3"); grep(x, names(cnee_orig_ori))
+  })
+names(cnee_orig_ori)[ind]
+postZp = cnee_orig_ori %>% dplyr::select(all_of(c(1, 2, ind))) #%>% filter(No. %in% sel ) # for acc
+dim(postZp) # 321597   6
+
+names(postZp) = gsub("_3", "", names(postZp))
+names(postZp)
+
+postZp2 = postZp %>% 
+  pivot_longer(cols = HLphyNov1:HLfloFus1, names_to = "target", values_to = "pp") %>%
+  mutate(acc = ifelse(pp>0.9, TRUE, FALSE)) %>%
+  group_by(cnee) %>% summarise(sum_pp = sum(pp), sum_acc = sum(acc))
+
+table(postZp2$sum_acc)
+hist(postZp2$sum_pp)
+plot(postZp2$sum_pp, postZp2$sum_acc)
+
+sum(postZp2$sum_pp > 0.9*5, na.rm = T)
+sum(postZp2$sum_acc == 5, na.rm = T)
+
+# go_gene_list_uniq_cnee_anno = go_gene_list_uniq_cnee %>% 
+#   left_join(postZp2, by = c('cnee' = 'ID')) %>% filter(! is.na(sum_pp)) %>% 
+#   filter(sum_acc >=2)
+# dim(go_gene_list_uniq_cnee_anno) # 1378   11
+# 
+# go_gene_list_uniq_cnee_anno_sum = go_gene_list_uniq_cnee_anno %>% group_by(SYMBOL) %>% 
+#   summarise(n_cnee = n(), n_conv_cnee = sum(sum_acc >=2), percent = n_conv_cnee/n_cnee)
 
 ## compare with eye-balling cnees ====
 library(readxl)
@@ -266,25 +342,30 @@ theme_m =
 project_path = path_to_data
 
 # 3.1 plot topGO ====
-plot_topGO = function(input_df, fill_col, title){
+plot_topGO = function(input_df, input_set, fill_col, title){
   # input_df = bp
+  # input_set = 'rar'
   # fill_col = 'red'
-  input_df = input_df %>% mutate(log10_p = -log10(pval_frac)) %>%
+  input_df = input_df %>% filter(set == input_set) %>% 
+    mutate(log10_p = -log10(pval_frac)) %>%
     slice_max(order_by = log10_p, n = 10)
   # arrange(log10_p)
   input_df$Description <- factor(input_df$Description) %>%
     fct_reorder(input_df$log10_p)
+  title2 = paste(title, gsub("filter_non_target_", "", input_set) )
   p = ggplot(input_df, aes(x = log10_p, y = Description)) +
     geom_col(fill = alpha(fill_col, 0.35)) +
     geom_text(aes(label = Count, x = log10_p*1.1), size = FontSize) +
     scale_x_continuous(name = "-log10(pval)") +
-    ggtitle(title) +
+    # facet_grid(set ~ ., scale = 'free') +
+    ggtitle(title2) +
     theme_m + theme(axis.title.y = element_blank()); p
 }
 
-plot_topGO(bp, 'blue')
+# plot_topGO(bp, 'blue')
 
-p_t = mapply(plot_topGO, input_df = list(bp, mf), fill_col= c('red', 'blue'), title = c('Biological process', 'Molecular function'), SIMPLIFY = FALSE)
+p_t = mapply(plot_topGO, input_df = list(bp, mf), input_set = rep('rar', 2),
+             fill_col= c('red', 'blue'), title = c('Biological process', 'Molecular function'), SIMPLIFY = FALSE)
 p = arrangeGrob(grobs = p_t, widths = c(4, 5))
 
 graph_path = paste0(project_path, "Top10GOterms_", Sys.Date(), ".pdf")       # all data
@@ -294,11 +375,56 @@ grid.draw(p)
 dev.off()
 openfile(graph_path)
 
+# all sets
+p_t = mapply(plot_topGO, input_df = list(bp, mf), input_set = rep(c('rar', "filter_non_target_honey2",    "filter_non_target_honey2anc", "filter_non_target_humm2","filter_non_target_humm2anc"),  each = 2),
+             fill_col= c('red', 'blue'), title = c('Biological process', 'Molecular function'), SIMPLIFY = FALSE)
+p = arrangeGrob(grobs = p_t, widths = c(4, 5))
+graph_path = paste0(project_path, "Top10GOterms_allsets_", Sys.Date(), ".pdf")       # all data
+pdf(graph_path, width = Width_HalfCol*3, height = Width_HalfCol*0.8*4, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+# png(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*0.625, unit = "in", res = 600)
+grid.draw(p)
+dev.off()
+openfile(graph_path)
+
+
 # 3.2 plot topGENE by associated CNEE ====
-plot_topGene = function(input_df){
-  # input_df = go_gene_list_sub_uniq_cnee2
+# plot_topGene = function(input_df){
+#   # input_df = go_gene_list_sub_uniq_cnee2
+#   fill_col = 'red'
+#   input_df = input_df %>% slice_max(order_by = count_cnee, n = 10)
+#   # arrange(log10_p)
+#   input_df$SYMBOL <- factor(input_df$SYMBOL) %>%
+#     fct_reorder(input_df$count_cnee)
+#   
+#   p = ggplot(input_df, aes(x = count_cnee, y = SYMBOL)) +
+#     geom_col(fill = alpha(fill_col, 0.35)) +
+#     # geom_text(aes(label = count_cnee, x = count_cnee*1.1), size = FontSize) +
+#     scale_x_continuous(name = "# nearby CNEEs") +
+#     # ggtitle(title) +
+#     theme_m + theme(axis.title.y = element_blank()); p
+# }
+# 
+# p_t = lapply(list(go_gene_list_uniq_cnee2, go_gene_list_sub_uniq_cnee2), plot_topGene)
+# p = arrangeGrob(grobs = p_t, widths = c(4, 5))
+# 
+# graph_path = paste0(project_path, "NumClosestCnee_byGene_", Sys.Date(), ".pdf")       # all data
+# pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*2, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+# # png(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*0.625, unit = "in", res = 600)
+# grid.draw(p)
+# dev.off()
+# openfile(graph_path)
+
+
+plot_topGene = function(input_set){
+  
+  input_df = go_gene_list2_cnee # all GO
+  # input_set='rar'
+  
   fill_col = 'red'
-  input_df = input_df %>% slice_max(order_by = count_cnee, n = 10)
+  input_df = input_df %>% filter(set == input_set) %>% 
+    dplyr::select(-cnee) %>% distinct( SYMBOL, .keep_all = TRUE) #%>%
+    # filter(ID %in% top10$ID) # in top10
+    # slice_max(order_by = count_cnee, n = 10)
   # arrange(log10_p)
   input_df$SYMBOL <- factor(input_df$SYMBOL) %>%
     fct_reorder(input_df$count_cnee)
@@ -306,20 +432,119 @@ plot_topGene = function(input_df){
   p = ggplot(input_df, aes(x = count_cnee, y = SYMBOL)) +
     geom_col(fill = alpha(fill_col, 0.35)) +
     # geom_text(aes(label = count_cnee, x = count_cnee*1.1), size = FontSize) +
-    scale_x_continuous(name = "# associated CNEEs") +
+    scale_x_continuous(name = "# nearby CNEEs") +
     # ggtitle(title) +
     theme_m + theme(axis.title.y = element_blank()); p
 }
+plot_topGene('rar')
 
-p_t = lapply(list(go_gene_list_uniq_cnee2, go_gene_list_sub_uniq_cnee2), plot_topGene)
-p = arrangeGrob(grobs = p_t, widths = c(4, 5))
+p_t = mapply(plot_topGene, 
+             input_set = c('rar', "filter_non_target_humm2", "filter_non_target_humm2anc", 
+                           "filter_non_target_honey2", "filter_non_target_honey2anc"), 
+             SIMPLIFY = FALSE)
+p = arrangeGrob(grobs = p_t, heights = c(6, 6, 3, 1, 1)) #, nrow = 3,  widths = c(4, 5))
 
 graph_path = paste0(project_path, "NumClosestCnee_byGene_", Sys.Date(), ".pdf")       # all data
-pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*2, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+pdf(graph_path, width = Width_HalfCol*1, height = Width_HalfCol*6, pointsize = AxisTxFontSizeSize, onefile = TRUE)
 # png(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*0.625, unit = "in", res = 600)
 grid.draw(p)
 dev.off()
 openfile(graph_path)
+
+# 3.2.2 plot topGENE by associated CNEE, top 10 ====
+plot_topGene = function(input_set){
+  
+  input_df = go_gene_list2_cnee # all GO
+  # input_set='rar'
+  
+  fill_col = 'red'
+  input_df = input_df %>% filter(set == input_set) %>% 
+    dplyr::select(-cnee) %>% distinct( SYMBOL, .keep_all = TRUE) %>%
+    filter(ID %in% top10$ID) # in top10
+  # slice_max(order_by = count_cnee, n = 10)
+  # arrange(log10_p)
+  input_df$SYMBOL <- factor(input_df$SYMBOL) %>%
+    fct_reorder(input_df$count_cnee)
+  
+  p = ggplot(input_df, aes(x = count_cnee, y = SYMBOL)) +
+    geom_col(fill = alpha(fill_col, 0.35)) +
+    # geom_text(aes(label = count_cnee, x = count_cnee*1.1), size = FontSize) +
+    scale_x_continuous(name = "# nearby CNEEs") +
+    # ggtitle(title) +
+    theme_m + theme(axis.title.y = element_blank()); p
+}
+plot_topGene('rar')
+
+p_t = mapply(plot_topGene, 
+             input_set = c('rar', "filter_non_target_humm2", "filter_non_target_humm2anc", 
+                           "filter_non_target_honey2", "filter_non_target_honey2anc"), 
+             SIMPLIFY = FALSE)
+p = arrangeGrob(grobs = p_t, heights = c(3, 3, 3, 1, 1)) #, nrow = 3,  widths = c(4, 5))
+
+graph_path = paste0(project_path, "NumClosestCnee_byGene_top10_", Sys.Date(), ".pdf")       # all data
+pdf(graph_path, width = Width_HalfCol*1, height = Width_HalfCol*5, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+# png(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*0.625, unit = "in", res = 600)
+grid.draw(p)
+dev.off()
+openfile(graph_path)
+
+# 3.2.3 plot topGENE by associated CNEE [] ====
+plot_topGene_per = function(input_set){
+  
+  input_df = go_gene_list2_cnee # all GO
+  # input_df = go_gene_list_sub_uniq_cnee # all cnee associated in the annotation
+  # input_set="filter_non_target_humm2"
+  fill_col = 'red'
+  input_df = input_df %>% filter(set == input_set) %>%
+    filter(ID %in% top10$ID) # in top10
+  # unique(input_df$SYMBOL)
+  
+  input_df = input_df %>% # narrow down to the set
+    left_join(postZp2, by = c('cnee' = 'cnee')) %>% filter(! is.na(sum_pp)) %>% # get pp
+    mutate(n_conv_cnee = sum(sum_acc >=2), 
+           percent_acc = n_conv_cnee/count_cnee) %>% 
+    distinct(SYMBOL, .keep_all = TRUE) %>% ungroup() %>%
+    dplyr::slice_max(order_by = percent_acc, n = 10) 
+  # dim(input_df) #  522  13
+
+  input_df_gene = input_df %>% dplyr::select(SYMBOL, count_cnee, percent_acc) %>%
+    distinct()
+  # input_df_gene$SYMBOL <- factor(input_df_gene$SYMBOL) %>%
+    # fct_reorder(input_df_gene$count_cnee)
+  input_df_gene$SYMBOL <- factor(input_df_gene$SYMBOL) %>%
+  fct_reorder(input_df_gene$percent_acc)
+  p1 = ggplot(input_df_gene, aes(x = count_cnee, y = SYMBOL)) +
+    geom_col(fill = alpha(fill_col, 0.35)) +
+    # geom_text(aes(label = count_cnee, x = count_cnee*1.1), size = FontSize) +
+    scale_x_continuous(name = "# nearby CNEEs") +
+    # ggtitle(title) +
+    theme_m + theme(axis.title.y = element_blank()); p1
+  
+  p2 = ggplot(input_df_gene, aes(x = percent_acc, y = SYMBOL)) +
+    geom_col(fill = alpha('blue', 0.35)) +
+    # geom_text(aes(label = count_cnee, x = count_cnee*1.1), size = FontSize) +
+    scale_x_continuous(name = "Percentage of convergently accelerated CNEEs") +
+    # ggtitle(title) +
+    theme_m + theme(axis.title.y = element_blank()); p2
+  p = arrangeGrob(grobs = list(p2, p1), nrow = 1)
+  # dev.off()
+  # grid.draw(p)
+}
+
+p_t = lapply(c('rar', "filter_non_target_humm2", "filter_non_target_humm2anc", 
+               "filter_non_target_honey2", "filter_non_target_honey2anc"), plot_topGene_per)
+p = arrangeGrob(grobs = p_t, ncol = 1, heights = c(3, 3, 3, 1, 1))
+
+graph_path = paste0(project_path, "NumClosestCnee_byGene_conv_", Sys.Date(), ".pdf")       # all data
+pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*4, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+# png(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*0.625, unit = "in", res = 600)
+grid.draw(p)
+dev.off()
+openfile(graph_path)
+
+
+
+
 
 ## 3.3 perm vs real [top10] ====
 

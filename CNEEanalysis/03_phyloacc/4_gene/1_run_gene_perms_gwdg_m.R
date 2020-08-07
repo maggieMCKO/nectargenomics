@@ -8,6 +8,7 @@ library(parallel)
 get_gene_counts <- function(DF, indicator) {
   #  indcol <- enquo(indicator)
   #  indcol <- indicator
+  # indicator = quo(rar)
   DF %>% filter(gene != ".") %>% mutate(in_target = !!indicator) %>% 
     count(gene, in_target) %>% filter(!is.na(in_target)) %>% spread(in_target, n, fill=0, drop=FALSE, sep="_")
 }
@@ -94,7 +95,7 @@ names(gene_gg) = c("cnee", "gene")
 path = paste0("/home/mpg08/mko/Nectar/analysis/CNEEanalysis/03_phyloacc/1_run_phyloacc/phyloacc_score_postZ.tsv.gz") # gwdg
 cnee_orig_ori <- read_tsv(path) 
 names(cnee_orig_ori) = gsub("ID", "cnee", names(cnee_orig_ori))
-names(cnee_orig_ori)[250:257]
+names(cnee_orig_ori)[250:ncol(cnee_orig_ori)]
 
 cnee_orig = cnee_orig_ori %>% 
   dplyr::select(No., cnee, logBF1, logBF2,
