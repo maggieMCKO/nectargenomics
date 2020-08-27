@@ -1,0 +1,149 @@
+### Re-classify orthologs using exon counts
+
+md transcript_counts_30_birds
+
+for db in $(cat finished.birds.lst ); do echo "orthology_type_by_count.py   -m /projects/project-osipova/NectarivoryProject/TOGA_ref_species_ncbi/TOGA_galGal6_ncbi_iso/${db}_toga_new_run/meta_data.tsv   -o /projects/project-osipova/NectarivoryProject/TOGA_ref_species_ncbi//TOGA_galGal6_ncbi_iso/${db}_toga_new_run/orthologs.tsv   -t M   -b /projects/project-osipova/NectarivoryProject/TOGA_ref_species_ncbi/TOGA_galGal6_new_run/cds.galGal6.ncbi.anno.bed12   > transcript_counts_30_birds/exon.counts.$db.class.tsv"; done > jobList_orthology_classifier
+
+para make ortho.classifier jobList_orthology_classifier
+
+
+### Get a set of single-copy transcripts in 30 birds (allow 20% of 0 counts; required species must have count 1)
+
+# prepare transcript table with counts
+make_transcript_count_table.py -c transcript_counts_30_birds/ -s <(g -v galGal6 30.bird.lst) > transcript.count.table.30birds.tsv
+
+# parse the table
+parse_filter_transcript_table.py -t transcript.count.table.30birds.tsv -s HLtriMol2,HLcalAnn5,HLfloFus1,HLchaPel1,HLphyNov1,HLlicCas1,HLacaPus1,melUnd1  >  intersect.one2one.30birds.ncbi.lst
+
+
+### Get single-copy transcripts requiring only 1 out of 3 clades to have count 1 for required species
+
+union_multiple_files.py -f   <(parse_filter_transcript_table.py -t transcript.count.table.30birds.tsv -s HLcalAnn5,HLfloFus1,HLchaPel1 -m 1)   <(parse_filter_transcript_table.py -t transcript.count.table.30birds.tsv -s HLtriMol2,melUnd1 -m 1)   <(parse_filter_transcript_table.py -t transcript.count.table.30birds.tsv -s HLphyNov1,HLlicCas1,HLacaPus1 -m 1) > intersect.atleast_1_clade_one2one.30birds.ncbi.lst
+
+diffCheckTwoFiles.py -f2 intersect.one2one.30birds.ncbi.lst -f1 intersect.atleast_1_clade_one2one.30birds.ncbi.lst | grep -A 1 "NOT in f2" | tail -1 | tr ' ' '\n' > add.intersect.atleast_1_clade_one2one.30birds.ncbi.lst
+
+
+
+
+
+#### Annotation based MSAs ####
+#
+all_one2one_transcripts=$(cat filters_tests_genes/intersect.one2one.30birds.ncbi.lst filters_tests_genes/add.intersect.atleast_1_clade_one2one.30birds.ncbi.lst )
+fasta_dir=orthologs_fasta_by_transcript/
+msa_dir=orthologs_MSAs_macse/
+hmm_dir=orthologs_MSAs_macse_hmmcleaner/
+manual_dir=orthologs_MSAs_macse_hmm_manual/
+gene_dir=by_gene_orthologs_MSAs_final/
+clades="HLcalAnn5,HLfloFus1 HLtriMol2 HLlicCas1,HLphyNov1"
+
+
+### Prepare and run get fasta jobs
+#
+md $fasta_dir
+
+for db in $(cat 30.bird.lst | g -v galGal6; do for t in $(echo "$all_one2one_transcripts"); do  echo "bash_fasta_from_loci.sh  $t $db /projects/project-osipova/NectarivoryProject/TOGA_ref_species_ncbi/TOGA_galGal6_ncbi_iso/${db}_toga_new_run/final.bed"; done; done  > jobs.getfasta.loci
+
+# and separately for chicken
+for t in $(echo "$all_one2one_transcripts" ); do echo "bash_fasta_from_loci.sh $t galGal6 cds_annotations/cds.galGal6.anno.bed"; done >> jobs.getfasta.loci
+
+# split jobs
+md batch_jobs_fasta_loci
+shuf jobs.getfasta.loci | splitFile stdin 500 batch_jobs_fasta_loci/batch_
+ls batch_jobs_fasta_loci/* | xargs -i echo "bash {}" >> batch.fasta.loci
+para make batch.fasta.loci batch.fasta.loci
+
+
+### Combine fasta sequnces
+#
+for t in $(cat all_one2one_transcripts); do echo "for f in \$(ls $fasta_dir/$t/); do sed \"s/>/>\${f%.dna.fa};/\" $fasta_dir/$t/\$f; done   >  $fasta_dir/$t/$t.30birds.dna.fa"; done > jobs.combine
+
+# split jobs
+md batch_jobs_combine
+shuf jobs.combine  | splitFile stdin 50 batch_jobs_combine/batch_
+ls batch_jobs_combine/* | xargs -i echo "bash {}" >> batch.combine
+para make batch.combine  batch.combine
+
+## prepare and run MACSE v2 jobs
+md $msa_dir/
+
+for t in $all_one2one_transcripts; do if [ -s $fasta_dir/$t/$t.30birds.db.fa  ]; then echo "java -jar /projects/genome-bat/.batcave/mybin/macse_v2.01.jar -prog alignSequences -seq $fasta_dir/$t/$t.30birds.db.fa -out_NT $msa_dir/$t.30birds.macse.fa -out_AA $msa_dir/$t.30birds.macse.AA.fas"; fi; done > jobs.macse
+
+
+## remove exclamation marks
+for t in $all_one2one_transcripts; do if [ -s $msa_dir/$t.30birds.macse.fa ]; then echo "sed 's/\!/-/g' $msa_dir/$t.30birds.macse.fa > $msa_dir/$t.30birds.macse.format.fa"; fi; done > jobs.sed
+
+## prepare and run HmmCleaner jobs
+md $hmm_dir
+
+for t in $all_one2one_transcripts; do if [ -s $msa_dir/$t.30birds.macse.format.fa ]; then echo "HmmCleaner.pl -costs -0.25 -0.20 0.15 0.45 $msa_dir/$t.30birds.macse.format.fa"; fi; done > jobs.hmmcleaner
+
+find $msa_dir -name  "*_hmm.fasta" | xargs -i mv {} $hmm_dir/
+find $msa_dir -name  "*_hmm.*" | xargs  -i rm {}
+
+
+## prepare and run manual filtering step
+md $manual_dir
+
+for t in $all_one2one_transcripts; do if [ -s $hmm_dir/$t.30birds.macse.format_hmm.fasta ]; then echo "manual_filter_msa.py -m  -mc 0.5 -ml 30 -a $hmm_dir/$t.30birds.macse.format_hmm.fasta > $manual_dir/$t.30birds.macse.hmm.manual.fa"; fi; done > jobs.manual.filter
+
+## check MSAs
+for clade in  $clades; do for t in $all_one2one_transcripts; do if [ -s $manual_dir/$t.30birds.macse.hmm.manual.fa ]; then echo "check_ali_file.py -f $manual_dir/$t.30birds.macse.hmm.manual.fa -n 15 -r $clade -t $t"; fi; done; done > jobs.check.ali
+
+cat .para/batch.check.ali/1/* .para/batch.check.ali/2/* | s -u > quality.transcripts.lst
+# 33058 quality.transcripts.lst
+
+## organize dir structure
+md $gene_dir
+for g in $(cut -f1 isoforms.ncbi.galGal6.csv); do mkdir -p $gene_dir/$g; done
+
+move_isoformes.sh isoforms.ncbi.galGal6.tsv $manual_dir/ 30birds.macse.hmm.manual.fa $gene_dir/
+
+
+
+
+### Make MSAs of orthologs using TOGA projections
+#
+all_one2one_transcripts=$(cat filters_tests_genes/intersect.one2one.30birds.ncbi.lst filters_tests_genes/add.intersect.atleast_1_clade_one2one.30birds.ncbi.lst )
+fasta_dir=orthologs_fa_from_toga/
+msa_dir=orthologs_toga_MSAs_macse/
+hmm_dir=orthologs_toga_MSAs_macse_hmm/
+manual_dir=orthologs_toga_MSAs_macse_hmm_manual/
+gene_dir=by_gene_toga_orthologs_MSAs_final/
+clades="HLcalAnn5,HLfloFus1 HLtriMol2 HLlicCas1,HLphyNov1"
+
+
+### Get fasta sequences
+md $fasta_dir
+
+for t in $all_one2one_transcripts; do for db in $(g -v galGal6 30.bird.lst); echo "bash bash_get_toga_projections.sh $t $db"; done; done > jobs.fa_from_toga
+# get glaGal6 sequences from HLacaPus1
+for t in $all_one2one_transcripts; do echo "bash bash_get_toga_galGal6.sh $t"; done >> jobs.fa_from_toga
+
+# split and run jobs
+md batch_fa_toga/
+shuf jobs.fa_from_toga | splitFile stdin 250 batch_fa_toga/batch_
+ls batch_fa_toga/* | xargs -i echo "bash {}" >> batch.fa.toga
+para make batch.fa.toga batch.fa.toga
+
+# check if you have all ref sequences
+for t in $all_one2one_transcripts; do if [ ! -s $fasta_dir/$t/$t.galGal6.fa  ]; then echo $t; fi; done > missing.ref.lst
+# 30 missing
+
+# try to get them from HLtaeGut4 or HLstrHab1 projections
+for t in $(cat missing.ref.lst); do bash bash_get_toga_galGal6.sh $t; done
+# DONE. all galGal6 sequnces are present
+
+
+## (The rest: see annotation-based MSAs section)
+
+## prepare and run MACSE v2 jobs
+
+## prepare and run HmmCleaner jobs
+
+## prepare and run manual filtering step
+
+## check MSAs
+
+## organize dir structure by gene
+
+
