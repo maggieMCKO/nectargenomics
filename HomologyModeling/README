@@ -1,7 +1,7 @@
 ### Input:	cleaned/filtered nucleotide MSA of a target gene
 ###		original (not cleaned, not aligned) fasta sequnce of a target gene (=long)
 ###		MEME/other tool results specifying sites under positive selection
-### Goal:	modeled structure of a target protein of species $db
+### Goal:	modeled structure of a target protein of species $db; sites under positive selection mapped to the structure.
 
 
 
