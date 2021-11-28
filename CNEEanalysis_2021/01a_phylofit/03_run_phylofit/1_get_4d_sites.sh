@@ -23,8 +23,8 @@ export trans_matrix="${gff_DIR}galgal6a_2315.6_acc_chr_matrix.tsv" # (chr): for 
 export gff_processed_DIR="${gff_DIR}/galGal6_gff_split/" # (galGal6.chr): for gff # MUST
 
 export WD="${cneeAna_DIR}01a_phylofit/03_run_phylofit/"
-export out_DIR="${WD}01_msa/"
-mkdir -p ${out_DIR}
+export tmp_DIR="${WD}01_msa/"
+mkdir -p ${tmp_DIR}
 
 
 export MYSCRATCH="/scratch/users/$USER/phylofit/"
@@ -39,9 +39,9 @@ mkdir -p ${MYSCRATCH}
 export sp_list=$(sed -z "s/\n/,/g;s/,$/\n/" "${input_DIR}sp_list.txt")
 echo ${sp_list}
 
-export concat_4ds="${out_DIR}conca_4dSites.ss"
-export neutral_model="${out_DIR}nonconserved_4d"
-export neutral_model_named="${out_DIR}nonconserved_4d_named.mod"
+export concat_4ds="${WD}conca_4dSites.ss"
+export neutral_model="${WD}nonconserved_4d"
+export neutral_model_named="${WD}nonconserved_4d_named.mod"
 
 ##### SETUP programs
 export phastPATH="$HOME/Tools/phast/bin/"

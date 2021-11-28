@@ -16,11 +16,11 @@ export input_DIR="${cneeAna_DIR}00_inputs/"
 export input_tree="${input_DIR}NectarTree02.nw"
 
 export WD="${cneeAna_DIR}01a_phylofit/03_run_phylofit/"
-export out_DIR="${WD}01_msa/"
+export tmp_DIR="${WD}01_msa/"
 
-export concat_4ds="${out_DIR}conca_4dSites.ss"
-export neutral_model="${out_DIR}nonconserved_4d"
-export neutral_model_named="${out_DIR}nonconserved_4d_named.mod"
+export concat_4ds="${WD}conca_4dSites.ss"
+export neutral_model="${WD}nonconserved_4d"
+export neutral_model_named="${WD}nonconserved_4d_named.mod"
 
 ##### SETUP programs
 export phastPATH="$HOME/Tools/phast/bin/"
