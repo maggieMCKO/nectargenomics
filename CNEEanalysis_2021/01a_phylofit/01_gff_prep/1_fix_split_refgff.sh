@@ -30,8 +30,7 @@ export fixed=${chicken_anno%%.gff}_chrtabFixed2.gff
 ##### RUN #####
 ### 1. FIXING gff chromosome
 # 1.1 download galgal assembly report
-# wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/002/315/GCF_000002315.6_GRCg6a/GCF_000002315.6_GRCg6a_assembly_report.txt
-
+wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/002/315/GCF_000002315.6_GRCg6a/GCF_000002315.6_GRCg6a_assembly_report.txt
 
 ## make acc and chromosome converion table (galGal6.chr): for spliting gff
 trans_matrix_for_gff=galgal6a_2315.6_acc_galgal6chr_matrix.tsv
@@ -45,7 +44,6 @@ sed 's/\r$//g' GCF_000002315.6_GRCg6a_assembly_report.txt | grep -v "^#" | cut -
 perl replace_chrs.pl ${trans_matrix_for_gff} ${chicken_anno} > ${fixChr}
 awk '{gsub(/Curated\tGenomic/, "Curated_Genomic") ; print}' ${fixChr} > ${fixed}
 
-
 ### 2. split gff by chromosomes
 splitGFFbyChr (){
     Chr=$1
@@ -54,6 +52,5 @@ splitGFFbyChr (){
 }
 
 export -f splitGFFbyChr
-
 
 cut -f2 ${trans_matrix_for_gff} | parallel splitGFFbyChr {}
