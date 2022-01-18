@@ -36,7 +36,7 @@ theme_m =
 project_path = paste0(getwd(), "/Seq_Data/globus/CNEEanalysis_2021/01b_cnee_prep/")
 
 # A. before merging ====
-path = paste0(project_path, "ce.lengths")
+path = paste0(project_path, "cnee_len_ana/ce.lengths")
 df = read_tsv(path, col_names = c("len", "set")) 
 df1 = df #%>%
   # filter(len >=50) %>% 
@@ -92,7 +92,7 @@ dev.off()
 
 
 # B.1. (no filter) after merging ====
-tmp_files = list.files(project_path, "galGal6_all_merged_\\d+bp.lengths", full.names = T); tmp_files
+tmp_files = list.files(paste0(project_path, "cnee_len_ana"), "galGal6_all_merged_\\d+bp.lengths", full.names = T); tmp_files
 cneeLen = lapply(tmp_files, function(s){
   read_tsv(s, col_names = "len") %>% bind_cols("ori" = basename(s))
 }) %>% bind_rows() %>% mutate(ori = gsub(".*_(\\d+bp).lengths", "\\1", ori))
@@ -258,7 +258,7 @@ dev.off()
 
 
 # C.1. (filter <= 1000) after merging ====
-tmp_files = list.files(project_path, "galGal6_all_merged_eqless1000_\\d+bp.lengths", full.names = T); tmp_files
+tmp_files = list.files(paste0(project_path, "cnee_len_ana"), "galGal6_all_merged_eqless1000_\\d+bp.lengths", full.names = T); tmp_files
 cneeLen = lapply(tmp_files, function(s){
   read_tsv(s, col_names = "len") %>% bind_cols("ori" = basename(s))
 }) %>% bind_rows() %>% mutate(ori = gsub(".*_(\\d+bp).lengths", "\\1", ori))
