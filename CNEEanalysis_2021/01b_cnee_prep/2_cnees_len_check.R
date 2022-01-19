@@ -38,9 +38,7 @@ project_path = paste0(getwd(), "/Seq_Data/globus/CNEEanalysis_2021/01b_cnee_prep
 # A. before merging ====
 path = paste0(project_path, "cnee_len_ana/ce.lengths")
 df = read_tsv(path, col_names = c("len", "set")) 
-df1 = df #%>%
-  # filter(len >=50) %>% 
-  # filter(len < 10000)
+df1 = df 
 df2 = df1 %>%
   group_by(set) %>%
   summarise(max = max(len), min = min(len), median = median(len), q = quantile(len, p = 0.9))
@@ -61,6 +59,58 @@ sapply(unique(df2$set), function(s){
                                      " (", format(num.gt.50/total*100, digits = 2),  "%)", "\n", 
                                      "Num > 100: ", num.gt.100, 
                                      " (", format(num.gt.100/total*100, digits = 2),  "%)")), lwd=0, col="white", bty="n")
+})
+dev.off()
+
+
+
+graph_path = paste0(project_path, "/CNEEsets_length_dist_longer1000_", Sys.Date(), ".pdf")
+t = unique(df2$set)
+u = c(1000, 2500)
+Ncol = 4
+Nrow = ceiling(length(t)*length(u)/Ncol)
+pdf(graph_path, width = Width_HalfCol*0.75*Ncol, height = Width_HalfCol*0.6*Nrow, pointsize = AxisTxFontSizeSize,
+    onefile = TRUE) 
+par(mfrow = c(Nrow,Ncol))
+sapply(t, function(s){
+  df_sub0 = df1 %>% filter(set == s)
+  sapply(u, function(ut){
+    df_sub = df_sub0 %>% filter(len > ut)
+    hist(df_sub$len, breaks=1000, main=paste0(s, " CNEEs > ", ut," bp"), xlab="Length")
+    abline(v = 2500, col = 'red')
+    text(x=c(2500), y=5, labels=c("2500 bp"), pos=4, col="red")
+    total = nrow(df_sub0)
+    num.gt = nrow(df_sub)
+    legend("topright", legend=c(paste0("Total: ", total, "\n", 
+                                       "Num > ", ut, ": ", num.gt, 
+                                       " (", format(num.gt/total*100, digits = 2),  "%)")), 
+           lwd=0, col="white", bty="n")
+  })
+  })
+dev.off()
+
+
+
+graph_path = paste0(project_path, "/CNEEsets_length_dist_UCSC_", Sys.Date(), ".pdf")
+t = c(1000, 2000, 2500, 5000, 10000, 20000)
+Ncol = 3
+Nrow = ceiling(length(t)/Ncol)
+pdf(graph_path, width = Width_HalfCol*0.75*Ncol, height = Width_HalfCol*0.6*Nrow, pointsize = AxisTxFontSizeSize,
+    onefile = TRUE) 
+par(mfrow = c(Nrow,Ncol))
+sapply(t, function(s){
+  df_sub0 = df1 %>% filter(set == "UCSC")
+  df_sub = df_sub0 %>% filter(len > s)
+  hist(df_sub$len, breaks=1000, main=paste0("UCSC CNEEs > ", s, " bp"), xlab="Length")
+  abline(v = c(10000, 20000, 30000, 35000, 40000), col = 'red')
+  text(x=c(42500), y=10, labels=c("10k, 20k, 30k, 35k, 40k bp"), pos=4, col="red")
+  abline(v = 20000, col = 'red', lwd = 2)
+  total = nrow(df_sub0)
+  num.gt = nrow(df_sub)
+  legend("topright", legend=c(paste0("Total: ", total, "\n", 
+                                     "Num > ", s, ": ", num.gt, 
+                                     " (", format(num.gt/total*100, digits = 2),  "%)")), 
+         lwd=0, col="white", bty="n")
 })
 dev.off()
 
@@ -255,6 +305,8 @@ graph_path = paste0(project_path, "/CNEEsets_length_dist_afterMerging_n_", Sys.D
 pdf(graph_path, width = Width_HalfCol*3, height = Width_HalfCol*1.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
 grid.draw(p)
 dev.off()
+
+
 
 
 # C.1. (filter <= 1000) after merging ====
