@@ -15,9 +15,9 @@ source "0_setup.sh"
 
 # use scratch: setup in 0_setup.sh
 
-### convert cnee.bed to cnee.psl
-awk '$3 ~ /region/ {print $1 "\t" $5}' ${fixed_chicken_anno} | awk '{gsub(/galGal6./, "") ; print}' > ${WD}galGal6chromSize.txt # (.chr)
-bedToPsl ${WD}galGal6chromSize.txt ${filtered_final} ${cneePSL} # works
+### convert cnee.bed to cnee.psl [run separately works]
+# awk '$3 ~ /region/ {print $1 "\t" $5}' ${fixed_chicken_anno} | awk '{gsub(/galGal6./, "") ; print}' > ${WD}galGal6chromSize.txt # (.chr) # works
+# bedToPsl ${WD}galGal6chromSize.txt ${filtered_final} ${cneePSL} # works
 
 ### to extract per Chr. maf of species X to psl on galgal6 cord.
 mafToPslbyChr (){
@@ -63,7 +63,7 @@ splitsp (){
     mkdir -p ${tmp_pslMappedTogalGal_dir}
     # final output
     tmp_mod5="${tmp_pslMappedTogalGal_dir}${SP}.psl"
-    # important: in species.psl format for Tim's perl script
+    # important: in species.psl format (q:galgal; t: sp) for Tim's perl script
 
     if [[ -s ${tmp_mod5} ]]
 	then
@@ -87,7 +87,7 @@ splitsp (){
         # pslSort dirs[1|2] outFile tempDir inDir(s)OrFile(s)
         rm -rf ${MYSCRATCH}
 
-        # map cnees to species
+        ### map cnees to species
         tmp_pslMapped="${tmp_pslMapped_dir}${SP}.psl"
         tmp_pslMapInfo="${tmp_pslMapInfo_dir}${SP}_mapInfo"
         # pslMap -swapMap -mapInfo=${tmp_pslMapInfo} ${tmp_psl} ${cneePSL} ${tmp_pslMapped}
@@ -129,6 +129,7 @@ splitsp (){
 
         # break up target name (targetChr_CneeID), and move CneeID to the 1st col, and fix strand
         awk '{split($0,a,"__"); print a[1], a[2]}' OFS="\t" ${tmp_mod4} | awk '{ print $15,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$16,$17,$18,$19,$20,$21,$22}' OFS="\t" | awk -F "\t" '{OFS=FS}{ $10="+"$10 ; print  }' > ${tmp_mod5} # double underscore
+
 	fi
 }
 export -f splitsp
