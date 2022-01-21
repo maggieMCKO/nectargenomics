@@ -16,7 +16,7 @@ source "0_setup.sh"
 # use scratch: setup in 0_setup.sh
 
 ### convert cnee.bed to cnee.psl
-awk '$3 ~ /region/ {print $1 "\t" $5}' ${fixed_chicken_anno} > ${WD}galGal6chromSize.txt # (.chr)
+awk '$3 ~ /region/ {print $1 "\t" $5}' ${fixed_chicken_anno} | awk '{gsub(/galGal6./, "") ; print}' > ${WD}galGal6chromSize.txt # (.chr)
 bedToPsl ${WD}galGal6chromSize.txt ${filtered_final} ${cneePSL} # works
 
 ### to extract per Chr. maf of species X to psl on galgal6 cord.
@@ -133,4 +133,4 @@ splitsp (){
 }
 export -f splitsp
 
-cut -f1 ${specieslist} | parallel --memfree 4G --tmpdir ${scratch_DIR} splitsp {}
+cut -f1 ${specieslist} | parallel --memfree 14 --tmpdir ${scratch_DIR} splitsp {}

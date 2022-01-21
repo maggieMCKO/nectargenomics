@@ -315,3 +315,27 @@ graph_path = paste0(path, "LRT_Con_padj_category_perChr_", Sys.Date(),".png"); g
 png(graph_path, width = Width_HalfCol*4, height = Width_HalfCol*2, units = 'in', res = 300, pointsize = AxisTxFontSizeSize)
 pc2_chr
 dev.off()
+
+# keep only phylop-flagged conserved genes ====
+path = paste0(project_path, "bed_ouputs/galGal6_final_merged_CNEEs_named_fixchr_justchr.bed")
+cnee = read_tsv(path, col_names = F)
+cnee_final = cnee %>% filter(X4 %in% df_to_keep$name)
+
+path = paste0(project_path, "bed_ouputs/galGal6_final_conserved_CNEEs.bed") 
+# write_tsv(cnee_final, file = path, col_names = F)
+
+cnee_final2 = cnee_final %>% mutate(len = X3-X2)
+
+graph_path = paste0(project_path, "/CNEEsets_length_dist_conserved_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*1, height = Width_HalfCol*0.8, pointsize = AxisTxFontSizeSize,
+    onefile = TRUE)
+hist(cnee_final2$len, breaks=100,
+     main=paste0("phyloP verified CNEEs"), xlab="Length")
+# abline(v = c(2500, 20000, 30000, 35000, 40000), col = 'red')
+# text(x=c(42500), y=10, labels=c("2.5k, 20k, 30k, 35k, 40k bp"), pos=4, col="red")
+# abline(v = 20000, col = 'red', lwd = 3)
+total = nrow(cnee_final2)
+legend("topright", legend=c(paste0("Total: ", total, "\n")),
+       lwd=0, col="white", bty="n")
+dev.off()
+openfile(graph_path)
