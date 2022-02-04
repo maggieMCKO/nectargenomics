@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --time=00:20:00 # 2h is enough for step1
-#SBATCH -N 1
+#SBATCH --time=02:30:00 # 2h is enough for step1
+##SBATCH -N 1
 #SBATCH --ntasks=20
 #SBATCH --mem-per-cpu=5G # 120
 #SBATCH --partition=medium
@@ -24,7 +24,8 @@ export dir_net=liftover_proc/8_net/
 export dir_liftover=liftover_proc/9_liftover/
 export dir_cnees=liftover_proc/10_cnees/
 export dir_cneefa=liftover_proc/11_fa/
-mkdir -p liftover_proc ${dir_2bit} ${dir_chromsizes} ${dir_psl} ${dir_chain} ${dir_chainMerged} ${dir_chainsorted} ${dir_chainMerged2} ${dir_net} ${dir_liftover} ${dir_cnees} ${dir_cneefa}
+export dir_cneeconcatfa=liftover_proc/12_concatfa/
+mkdir -p liftover_proc ${dir_2bit} ${dir_chromsizes} ${dir_psl} ${dir_chain} ${dir_chainMerged} ${dir_chainsorted} ${dir_chainMerged2} ${dir_net} ${dir_liftover} ${dir_cnees} ${dir_cneefa} ${dir_cneeconcatfa}
 
 ### RUN
 # cd ${maf_DIR}
@@ -37,7 +38,7 @@ runliftover () {
     # for "liftOver", the map.chain file has the old genome as the target and the new genome as the query.
 
     ## get chrom.sizes
-    qfa=$(find ../00_inputs/genomes/ | grep ${sp})
+    qfa=$(find ../00_inputs/genomes/ | grep "fa$"| grep ${sp})
     ${ucsc_path}faToTwoBit ${qfa} ${dir_2bit}${sp}.2bit
     ${ucsc_path}twoBitInfo ${dir_2bit}${sp}.2bit stdout | sort -k2,2nr > ${dir_chromsizes}${sp}.chrom.sizes
 
@@ -84,8 +85,7 @@ runliftover () {
 }
 
 export -f runliftover
-
-# cut -f1 ${specieslist} | grep -v "galGal6" | parallel --max-procs ${SLURM_NTASKS} --memfree 4G --tmpdir ${scratch_DIR} runliftover {}
+cut -f1 ${specieslist} | grep -v "galGal6" | parallel --max-procs ${SLURM_NTASKS} --memfree 4G --tmpdir ${scratch_DIR} runliftover {}
 
 
 merge () {
@@ -94,22 +94,13 @@ merge () {
     bedtools sort -i ${dir_cnees}mapped/${sp}.bed  | bedtools merge -i - -d 3 > ${dir_cnees}mappedmerged3bp/${sp}_merged3bp.bed
 }
 export -f merge
+cut -f1 ${specieslist} | grep -v "galGal6" | parallel --max-procs ${SLURM_NTASKS} --memfree 4G --tmpdir ${scratch_DIR} merge {}
 
-# cut -f1 ${specieslist} | grep -v "galGal6" | parallel --max-procs ${SLURM_NTASKS} --memfree 4G --tmpdir ${scratch_DIR} merge {}
 
 getfa (){
-    SP=$1
+    export sp=$1
 
-    # # for some reason, bedtools getfasta needs to be exe-ed in the dir of in_fa, in_bed, and out_fa
-    # tmpInFa="${Renamed_DIR}${SP}_renamed.fasta"
-    # tmpInFa="${Renamed_DIR}${SP}.fa" # 2021
-    # cp ${tmpInFa} ${tmp_pslMappedTogalGal_dir}
-
-    # tmpInFaCopied="${tmp_pslMappedTogalGal_dir}${SP}.fa"
-    # tmpInBed=${tmp_pslMappedTogalGal_dir}${SP}_cnees_parsed_liftover.bed
-
-
-    qfa=$(find ../00_inputs/genomes/ | grep ${sp})
+    qfa=$(find ../00_inputs/genomes/ | grep "fa$"| grep ${sp})
     tmpOutFa=${dir_cneefa}${sp}_cnees.fa
 
     if [ "$sp" == "galGal6" ]; then
@@ -119,5 +110,29 @@ getfa (){
     fi
 }
 export -f getfa
-
 cut -f1 ${specieslist} | parallel --max-procs ${SLURM_NTASKS} --memfree 4G --tmpdir ${scratch_DIR} getfa {}
+# ~20 mins
+
+# adapted from https://github.com/sjswuitchik/duck_comp_gen/blob/2bf589d198122fd9ae69337a30e62ae303c7c9cb/03a_cnee_analysis/02_align_cnees.sh
+
+## use bioawk to fix up - kind of janky
+# rm -f "${dir_cneeconcatfa}all_cnees.tab"
+# 1 prepare the species set
+SP_set=$(cut -f1 ${specieslist})
+VAR=""
+for ELEMENT in ${SP_set}; do
+  VAR+="${ELEMENT} "
+done
+echo -e "Species set: ${VAR}"
+
+module load anaconda2/2019.10
+#conda create -n py27 python=2.7 perl perl-app-cpanminus bedtools bioawk
+source activate py27
+#cpanm Math::Round # install needed perl library
+
+for SP in $VAR
+do
+    bioawk -c fastx '{gsub(/::.*$/,"",$name); print "'"$SP"'", $name, $seq}'  "${dir_cneefa}${SP}_cnees.fa" >> "${dir_cneeconcatfa}all_cnees.tab"
+done
+
+cut -f1,1 "${dir_cneeconcatfa}all_cnees.tab" | sort | uniq -c > "${dir_cneeconcatfa}all_cnees_summary.tab"
