@@ -1,7 +1,7 @@
 tmp_sp=VAR
 Ref_species=galGal6
 
-Processed_DIR=Sp_maf/
+Processed_DIR=liftover_proc/0_maf/
 
 input.file=/usr/users/mko/Nectar/analysis/CNEEanalysis_2021/00_inputs/multiz45way.maf.gz  // Input maf file, gzipped
 input.file.compression=gzip

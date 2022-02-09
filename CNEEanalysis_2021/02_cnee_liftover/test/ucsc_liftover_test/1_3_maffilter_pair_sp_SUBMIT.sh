@@ -2,7 +2,7 @@
 
 source "0_setup.sh"
 mkdir -p d1_optionfiles d1_slurmscripts d1_logS
-mkdir -p Sp_maf
+mkdir -p liftover_proc/0_maf/
 
 export maffilter_optionfile="1_1_optionfile_tmp.maffilter"
 export maffilter_sp_slurm="1_2_maffilter_pair_sp.sh"
@@ -31,6 +31,19 @@ MakeMafPair (){
 }
 
 export -f MakeMafPair
-cut -f1 ${specieslist} | grep -v "galGal6" | parallel MakeMafPair {}
-
+cut -f1 ${specieslist} | grep "galGal6" | parallel MakeMafPair {}
+# | grep -v "galGal6"
 # bash 1_3_maffilter_pair_sp_SUBMIT.sh &> runninglog
+
+
+# check progress
+# find d1_logS  | grep ".o$" |grep -nrl "Elapsed" | xargs cat > mafFilter_prog.log
+
+
+
+# check:
+# find phylop_logs |grep "^phylop" | grep ".err" | xargs cat > concat_err.log
+# grep -i error concat_err.log
+# chr1 wasn't finished in 45 mins, used 66 mins
+
+# ls |grep "^phylop" | grep ".err"  |grep -nrl "ERROR: no features fall in alignment"
