@@ -1,0 +1,352 @@
+Finished processing: 363747 loci for HLacaPus1
+No liftover region: 7405 (omitted)
+Have cnee liftover for: 356342 loci
+Multiple liftover regions: 15 (omitted)
+Overly long target region (> 2X galGal): 673 (omitted)
+Short target region (< 50% of chicken): 976 (retained)
+Output bed coordinates for: 355654 cnees for HLacaPus1
+
+Finished processing: 363747 loci for HLamaAes1
+No liftover region: 11674 (omitted)
+Have cnee liftover for: 352073 loci
+Multiple liftover regions: 41 (omitted)
+Overly long target region (> 2X galGal): 1285 (omitted)
+Short target region (< 50% of chicken): 1701 (retained)
+Output bed coordinates for: 350747 cnees for HLamaAes1
+
+Finished processing: 363747 loci for HLapuApu1
+No liftover region: 6276 (omitted)
+Have cnee liftover for: 357471 loci
+Multiple liftover regions: 17 (omitted)
+Overly long target region (> 2X galGal): 756 (omitted)
+Short target region (< 50% of chicken): 1123 (retained)
+Output bed coordinates for: 356698 cnees for HLapuApu1
+
+Finished processing: 363747 loci for HLaraSol1
+No liftover region: 5325 (omitted)
+Have cnee liftover for: 358422 loci
+Multiple liftover regions: 44 (omitted)
+Overly long target region (> 2X galGal): 1303 (omitted)
+Short target region (< 50% of chicken): 1012 (retained)
+Output bed coordinates for: 357075 cnees for HLaraSol1
+
+Finished processing: 363747 loci for HLatrCla1
+No liftover region: 5543 (omitted)
+Have cnee liftover for: 358204 loci
+Multiple liftover regions: 63 (omitted)
+Overly long target region (> 2X galGal): 578 (omitted)
+Short target region (< 50% of chicken): 851 (retained)
+Output bed coordinates for: 357563 cnees for HLatrCla1
+
+Finished processing: 363747 loci for HLcalAnn5
+No liftover region: 10745 (omitted)
+Have cnee liftover for: 353002 loci
+Multiple liftover regions: 13 (omitted)
+Overly long target region (> 2X galGal): 868 (omitted)
+Short target region (< 50% of chicken): 1414 (retained)
+Output bed coordinates for: 352121 cnees for HLcalAnn5
+
+Finished processing: 363747 loci for HLcalPug1
+No liftover region: 3250 (omitted)
+Have cnee liftover for: 360497 loci
+Multiple liftover regions: 19 (omitted)
+Overly long target region (> 2X galGal): 1028 (omitted)
+Short target region (< 50% of chicken): 764 (retained)
+Output bed coordinates for: 359450 cnees for HLcalPug1
+
+Finished processing: 363747 loci for HLchaPel1
+No liftover region: 8842 (omitted)
+Have cnee liftover for: 354905 loci
+Multiple liftover regions: 20 (omitted)
+Overly long target region (> 2X galGal): 1482 (omitted)
+Short target region (< 50% of chicken): 1502 (retained)
+Output bed coordinates for: 353403 cnees for HLchaPel1
+
+Finished processing: 363747 loci for HLcinPul1
+No liftover region: 7500 (omitted)
+Have cnee liftover for: 356247 loci
+Multiple liftover regions: 13 (omitted)
+Overly long target region (> 2X galGal): 717 (omitted)
+Short target region (< 50% of chicken): 927 (retained)
+Output bed coordinates for: 355517 cnees for HLcinPul1
+
+Finished processing: 363747 loci for HLcliRuf1
+No liftover region: 5714 (omitted)
+Have cnee liftover for: 358033 loci
+Multiple liftover regions: 23 (omitted)
+Overly long target region (> 2X galGal): 793 (omitted)
+Short target region (< 50% of chicken): 948 (retained)
+Output bed coordinates for: 357217 cnees for HLcliRuf1
+
+Finished processing: 363747 loci for HLcolLiv2
+No liftover region: 5058 (omitted)
+Have cnee liftover for: 358689 loci
+Multiple liftover regions: 19 (omitted)
+Overly long target region (> 2X galGal): 698 (omitted)
+Short target region (< 50% of chicken): 1235 (retained)
+Output bed coordinates for: 357972 cnees for HLcolLiv2
+
+Finished processing: 363747 loci for HLcorCor3
+No liftover region: 8616 (omitted)
+Have cnee liftover for: 355131 loci
+Multiple liftover regions: 14 (omitted)
+Overly long target region (> 2X galGal): 693 (omitted)
+Short target region (< 50% of chicken): 984 (retained)
+Output bed coordinates for: 354424 cnees for HLcorCor3
+
+Finished processing: 363747 loci for HLdicExi1
+No liftover region: 9391 (omitted)
+Have cnee liftover for: 354356 loci
+Multiple liftover regions: 30 (omitted)
+Overly long target region (> 2X galGal): 686 (omitted)
+Short target region (< 50% of chicken): 1205 (retained)
+Output bed coordinates for: 353640 cnees for HLdicExi1
+
+Finished processing: 363747 loci for HLempTra1
+No liftover region: 7634 (omitted)
+Have cnee liftover for: 356113 loci
+Multiple liftover regions: 106 (omitted)
+Overly long target region (> 2X galGal): 1035 (omitted)
+Short target region (< 50% of chicken): 1375 (retained)
+Output bed coordinates for: 354972 cnees for HLempTra1
+
+Finished processing: 363747 loci for HLfalTin1
+No liftover region: 3453 (omitted)
+Have cnee liftover for: 360294 loci
+Multiple liftover regions: 15 (omitted)
+Overly long target region (> 2X galGal): 606 (omitted)
+Short target region (< 50% of chicken): 770 (retained)
+Output bed coordinates for: 359673 cnees for HLfalTin1
+
+Finished processing: 363747 loci for HLfloFus1
+No liftover region: 10825 (omitted)
+Have cnee liftover for: 352922 loci
+Multiple liftover regions: 53 (omitted)
+Overly long target region (> 2X galGal): 720 (omitted)
+Short target region (< 50% of chicken): 1774 (retained)
+Output bed coordinates for: 352149 cnees for HLfloFus1
+
+Finished processing: 363747 loci for HLfurRuf1
+No liftover region: 7842 (omitted)
+Have cnee liftover for: 355905 loci
+Multiple liftover regions: 21 (omitted)
+Overly long target region (> 2X galGal): 660 (omitted)
+Short target region (< 50% of chicken): 1020 (retained)
+Output bed coordinates for: 355224 cnees for HLfurRuf1
+
+Finished processing: 363747 loci for HLgraPic1
+No liftover region: 7804 (omitted)
+Have cnee liftover for: 355943 loci
+Multiple liftover regions: 27 (omitted)
+Overly long target region (> 2X galGal): 697 (omitted)
+Short target region (< 50% of chicken): 1067 (retained)
+Output bed coordinates for: 355219 cnees for HLgraPic1
+
+Finished processing: 363747 loci for HLlepAsp1
+No liftover region: 8140 (omitted)
+Have cnee liftover for: 355607 loci
+Multiple liftover regions: 65 (omitted)
+Overly long target region (> 2X galGal): 808 (omitted)
+Short target region (< 50% of chicken): 1083 (retained)
+Output bed coordinates for: 354734 cnees for HLlepAsp1
+
+Finished processing: 363747 loci for HLlicMelCas1
+No liftover region: 6669 (omitted)
+Have cnee liftover for: 357078 loci
+Multiple liftover regions: 19 (omitted)
+Overly long target region (> 2X galGal): 673 (omitted)
+Short target region (< 50% of chicken): 970 (retained)
+Output bed coordinates for: 356386 cnees for HLlicMelCas1
+
+Finished processing: 363747 loci for HLlicPen1
+No liftover region: 6920 (omitted)
+Have cnee liftover for: 356827 loci
+Multiple liftover regions: 12 (omitted)
+Overly long target region (> 2X galGal): 671 (omitted)
+Short target region (< 50% of chicken): 939 (retained)
+Output bed coordinates for: 356144 cnees for HLlicPen1
+
+Finished processing: 363747 loci for HLlorGal1
+No liftover region: 6075 (omitted)
+Have cnee liftover for: 357672 loci
+Multiple liftover regions: 20 (omitted)
+Overly long target region (> 2X galGal): 905 (omitted)
+Short target region (< 50% of chicken): 1066 (retained)
+Output bed coordinates for: 356747 cnees for HLlorGal1
+
+Finished processing: 363747 loci for HLmalCya1
+No liftover region: 12802 (omitted)
+Have cnee liftover for: 350945 loci
+Multiple liftover regions: 144 (omitted)
+Overly long target region (> 2X galGal): 875 (omitted)
+Short target region (< 50% of chicken): 1359 (retained)
+Output bed coordinates for: 349926 cnees for HLmalCya1
+
+Finished processing: 363747 loci for HLmalEle1
+No liftover region: 13018 (omitted)
+Have cnee liftover for: 350729 loci
+Multiple liftover regions: 51 (omitted)
+Overly long target region (> 2X galGal): 757 (omitted)
+Short target region (< 50% of chicken): 1156 (retained)
+Output bed coordinates for: 349921 cnees for HLmalEle1
+
+Finished processing: 363747 loci for HLmelMel1
+No liftover region: 9180 (omitted)
+Have cnee liftover for: 354567 loci
+Multiple liftover regions: 25 (omitted)
+Overly long target region (> 2X galGal): 698 (omitted)
+Short target region (< 50% of chicken): 1154 (retained)
+Output bed coordinates for: 353844 cnees for HLmelMel1
+
+Finished processing: 363747 loci for HLmenNov1
+No liftover region: 4813 (omitted)
+Have cnee liftover for: 358934 loci
+Multiple liftover regions: 16 (omitted)
+Overly long target region (> 2X galGal): 576 (omitted)
+Short target region (< 50% of chicken): 851 (retained)
+Output bed coordinates for: 358342 cnees for HLmenNov1
+
+Finished processing: 363747 loci for HLnymHol2
+No liftover region: 5705 (omitted)
+Have cnee liftover for: 358042 loci
+Multiple liftover regions: 18 (omitted)
+Overly long target region (> 2X galGal): 880 (omitted)
+Short target region (< 50% of chicken): 970 (retained)
+Output bed coordinates for: 357144 cnees for HLnymHol2
+
+Finished processing: 363747 loci for HLparMaj1
+No liftover region: 8702 (omitted)
+Have cnee liftover for: 355045 loci
+Multiple liftover regions: 18 (omitted)
+Overly long target region (> 2X galGal): 666 (omitted)
+Short target region (< 50% of chicken): 1042 (retained)
+Output bed coordinates for: 354361 cnees for HLparMaj1
+
+Finished processing: 363747 loci for HLparPun1
+No liftover region: 12445 (omitted)
+Have cnee liftover for: 351302 loci
+Multiple liftover regions: 58 (omitted)
+Overly long target region (> 2X galGal): 676 (omitted)
+Short target region (< 50% of chicken): 949 (retained)
+Output bed coordinates for: 350568 cnees for HLparPun1
+
+Finished processing: 363747 loci for HLphaSup1
+No liftover region: 9369 (omitted)
+Have cnee liftover for: 354378 loci
+Multiple liftover regions: 11 (omitted)
+Overly long target region (> 2X galGal): 744 (omitted)
+Short target region (< 50% of chicken): 1446 (retained)
+Output bed coordinates for: 353623 cnees for HLphaSup1
+
+Finished processing: 363747 loci for HLphyNov1
+No liftover region: 8100 (omitted)
+Have cnee liftover for: 355647 loci
+Multiple liftover regions: 18 (omitted)
+Overly long target region (> 2X galGal): 651 (omitted)
+Short target region (< 50% of chicken): 1025 (retained)
+Output bed coordinates for: 354978 cnees for HLphyNov1
+
+Finished processing: 363747 loci for HLserCan1
+No liftover region: 9584 (omitted)
+Have cnee liftover for: 354163 loci
+Multiple liftover regions: 18 (omitted)
+Overly long target region (> 2X galGal): 708 (omitted)
+Short target region (< 50% of chicken): 1161 (retained)
+Output bed coordinates for: 353437 cnees for HLserCan1
+
+Finished processing: 363747 loci for HLstrHab1
+No liftover region: 4300 (omitted)
+Have cnee liftover for: 359447 loci
+Multiple liftover regions: 21 (omitted)
+Overly long target region (> 2X galGal): 814 (omitted)
+Short target region (< 50% of chicken): 805 (retained)
+Output bed coordinates for: 358612 cnees for HLstrHab1
+
+Finished processing: 363747 loci for HLtaeGut4
+No liftover region: 10441 (omitted)
+Have cnee liftover for: 353306 loci
+Multiple liftover regions: 17 (omitted)
+Overly long target region (> 2X galGal): 694 (omitted)
+Short target region (< 50% of chicken): 1185 (retained)
+Output bed coordinates for: 352595 cnees for HLtaeGut4
+
+Finished processing: 363747 loci for HLtriMol2
+No liftover region: 8278 (omitted)
+Have cnee liftover for: 355469 loci
+Multiple liftover regions: 54 (omitted)
+Overly long target region (> 2X galGal): 955 (omitted)
+Short target region (< 50% of chicken): 1030 (retained)
+Output bed coordinates for: 354460 cnees for HLtriMol2
+
+Finished processing: 363747 loci for HLtytAlb2
+No liftover region: 2768 (omitted)
+Have cnee liftover for: 360979 loci
+Multiple liftover regions: 41 (omitted)
+Overly long target region (> 2X galGal): 870 (omitted)
+Short target region (< 50% of chicken): 653 (retained)
+Output bed coordinates for: 360068 cnees for HLtytAlb2
+
+Finished processing: 363747 loci for aptFor1
+No liftover region: 2878 (omitted)
+Have cnee liftover for: 360869 loci
+Multiple liftover regions: 16 (omitted)
+Overly long target region (> 2X galGal): 1435 (omitted)
+Short target region (< 50% of chicken): 705 (retained)
+Output bed coordinates for: 359418 cnees for aptFor1
+
+Finished processing: 363747 loci for cucCan1
+No liftover region: 5731 (omitted)
+Have cnee liftover for: 358016 loci
+Multiple liftover regions: 19 (omitted)
+Overly long target region (> 2X galGal): 1028 (omitted)
+Short target region (< 50% of chicken): 1194 (retained)
+Output bed coordinates for: 356969 cnees for cucCan1
+
+Finished processing: 363747 loci for falChe1
+No liftover region: 2597 (omitted)
+Have cnee liftover for: 361150 loci
+Multiple liftover regions: 13 (omitted)
+Overly long target region (> 2X galGal): 870 (omitted)
+Short target region (< 50% of chicken): 733 (retained)
+Output bed coordinates for: 360267 cnees for falChe1
+
+Finished processing: 363747 loci for falPer1
+No liftover region: 2383 (omitted)
+Have cnee liftover for: 361364 loci
+Multiple liftover regions: 18 (omitted)
+Overly long target region (> 2X galGal): 725 (omitted)
+Short target region (< 50% of chicken): 695 (retained)
+Output bed coordinates for: 360621 cnees for falPer1
+
+Finished processing: 363747 loci for ficAlb2
+No liftover region: 9028 (omitted)
+Have cnee liftover for: 354719 loci
+Multiple liftover regions: 23 (omitted)
+Overly long target region (> 2X galGal): 1763 (omitted)
+Short target region (< 50% of chicken): 1171 (retained)
+Output bed coordinates for: 352933 cnees for ficAlb2
+
+Finished processing: 363747 loci for halLeu1
+No liftover region: 4614 (omitted)
+Have cnee liftover for: 359133 loci
+Multiple liftover regions: 17 (omitted)
+Overly long target region (> 2X galGal): 594 (omitted)
+Short target region (< 50% of chicken): 531 (retained)
+Output bed coordinates for: 358522 cnees for halLeu1
+
+Finished processing: 363747 loci for opiHoa1
+No liftover region: 7803 (omitted)
+Have cnee liftover for: 355944 loci
+Multiple liftover regions: 15 (omitted)
+Overly long target region (> 2X galGal): 818 (omitted)
+Short target region (< 50% of chicken): 1444 (retained)
+Output bed coordinates for: 355111 cnees for opiHoa1
+
+Finished processing: 363747 loci for pseHum1
+No liftover region: 7495 (omitted)
+Have cnee liftover for: 356252 loci
+Multiple liftover regions: 13 (omitted)
+Overly long target region (> 2X galGal): 711 (omitted)
+Short target region (< 50% of chicken): 965 (retained)
+Output bed coordinates for: 355528 cnees for pseHum1
+
