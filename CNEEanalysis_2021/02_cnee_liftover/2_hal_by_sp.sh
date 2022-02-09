@@ -34,7 +34,7 @@ export array=($(cut -f1 ${specieslist} | grep -v "galGal6" ))
 # export sp_comma=$(join_by , "${array[@]}")
 
 # 2. maftohal
-# singularity exec ${singularity_image} sh -c "cd '$HOME/Nectar/analysis/CNEEanalysis_2021/02_cnee_liftover' && maf2hal multiz45way.maf ${dir_hal}multiz45way.hal --refGenome ${Ref_species}"
+singularity exec ${singularity_image} sh -c "cd '$HOME/Nectar/analysis/CNEEanalysis_2021/02_cnee_liftover' && maf2hal multiz45way.maf ${dir_hal}multiz45way.hal --refGenome ${Ref_species}"
 
 # 3. halLiftover by species
 runliftover () {
