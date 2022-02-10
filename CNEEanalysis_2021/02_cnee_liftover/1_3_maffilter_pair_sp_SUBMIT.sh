@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source "0_setup.sh"
+
 mkdir -p d1_optionfiles d1_slurmscripts d1_logS
 mkdir -p liftover_proc/0_maf/
 

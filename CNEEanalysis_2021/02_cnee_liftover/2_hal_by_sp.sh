@@ -13,13 +13,10 @@
 
 # WD: /home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/02_cnee_liftover
 
+source "0_setup.sh"
+
 module load singularity/3.7.4 # singularity/3.2.1
 export singularity_image="$HOME/Tools/cat:20200116.sif"
-export specieslist="../00_inputs/sp_list.txt"
-export Ref_species="galGal6"
-export filtered_final="../01b_cnee_prep/bed_outputs/galGal6_final_conserved_CNEEs.bed"
-export scratch_DIR="/scratch/users/$USER/phyloacc/"
-mkdir -p ${scratch_DIR}
 
 export dir_hal=liftover_proc/1_hal_sp/
 export dir_psl=liftover_proc/2_psl_sp/
