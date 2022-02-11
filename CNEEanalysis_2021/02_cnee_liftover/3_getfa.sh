@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=01:00:00 # 2h is enough for step1
+#SBATCH --time=01:00:00 # ~15 mins
 ##SBATCH -N 1
 #SBATCH --ntasks=20
 #SBATCH --mem-per-cpu=5G # 120
