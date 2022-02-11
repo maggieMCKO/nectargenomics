@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=01:10:00
+#SBATCH --time=00:30:00
 #SBATCH -c 1
 #SBATCH --mem=4g
 #SBATCH --partition=medium

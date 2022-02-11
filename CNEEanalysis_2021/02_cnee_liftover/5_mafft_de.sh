@@ -2,8 +2,8 @@
 #SBATCH -n 1
 #SBATCH -N 1
 #SBATCH -t 0-00:30 # for each task; 30 mins per task; 10~15 mins
-#SBATCH --output=log5_%A_%a.out
-#SBATCH --error=log5_%A_%a.err
+#SBATCH --output=log5d/log5_%A_%a.out
+#SBATCH --error=log5d/log5_%A_%a.err
 #SBATCH -p medium
 #SBATCH --mem=4g
 #SBATCH --array=0-363 ###!!!!!!!! output of ls $aligned_DIR | wc -l; then minus 1

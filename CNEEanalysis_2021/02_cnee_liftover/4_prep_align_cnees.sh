@@ -26,3 +26,5 @@ cut -f4,4 ${filtered_final} | split -a 3 -d  -l 1000 - ${aligned_DIR}batch
 
 ## 2. unaligned
 awk -v targetDir="$unaligned_DIR" '{print ">"$1 >> targetDir$2".fa"; print $3 >> targetDir$2".fa"; close(targetDir$2".fa")}' ${all_cnees_tab_to}
+
+mkdir -p log5d

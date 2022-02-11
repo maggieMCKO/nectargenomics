@@ -43,7 +43,7 @@ cut -f1 ${specieslist} | parallel --max-procs ${SLURM_NTASKS} --memfree 4G --tmp
 ## use bioawk to fix up - kind of janky
 # 1 prepare the species set
 function join_by { local IFS="$1"; shift; echo "$*"; }
-export array=($(cut -f1 ${specieslist} | grep -v "galGal6" ))
+export array=($(cut -f1 ${specieslist} ))
 export sp_space=$(join_by " " "${array[@]}")
 echo -e "Species set: ${sp_space}"
 
