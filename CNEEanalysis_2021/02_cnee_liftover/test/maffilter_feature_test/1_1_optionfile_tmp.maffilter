@@ -1,0 +1,16 @@
+tmp_sp=HLtriMol2
+Ref_species=galGal6
+
+Processed_DIR=Sp_maf/
+
+input.file=/usr/users/mko/Nectar/analysis/CNEEanalysis_2021/00_inputs/multiz45way.maf.gz  // Input maf file, gzipped
+input.file.compression=gzip
+input.format=Maf
+
+maf.filter=\
+    Subset(species=($(Ref_species), $(tmp_sp)), \
+            strict=yes,                         \
+            keep=no,                            \
+            remove_duplicates=no),              \
+    Output( file=$(Processed_DIR)$(tmp_sp).maf, \
+            compression=none, mask=no)
