@@ -668,7 +668,7 @@ p = arrangeGrob(grobs = list(p_exp2_pvalraw_cor, p_exp2_scale_cor, p_exp2_bf3_co
                              p_exp2_pvalraw_cor_zoominy, p_exp2_bf3_cor_zoomin), nrow = 2)
 
 graph_path = paste0(project_path, "comparing_run2_phyloacc_phyloP_exp_pp_",  Sys.Date(),  ".png"); graph_path
-png(graph_path, width = Width_HalfCol*1, height = Width_HalfCol*0.5*2, units = 'in', res = 300,
+png(graph_path, width = Width_HalfCol*1.5, height = Width_HalfCol*0.5*2, units = 'in', res = 300,
     pointsize = AxisTxFontSizeSize)
 grid.draw(p)
 dev.off()
