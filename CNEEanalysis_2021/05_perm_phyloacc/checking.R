@@ -1,7 +1,8 @@
 library(tidyverse)
 
+# /Users/beautibabi/ownCloud/Baldwin/Projects/Nectar/Seq_Data/github/nectargenomics/CNEEanalysis_2021/05_perm_phyloacc
 
-path = paste0( "../../galGal.gff.bed")
+path = paste0("postPhyloAcc/galGal.gff.bed")
 x = read_tsv(path, col_names = F) 
 dim(x) # 17155 > rm chrM > 17142
 x2 = x %>% mutate(gene = gsub("ID=gene-(\\w+-*\\.*\\w*);.*", "\\1", X10))
@@ -12,7 +13,7 @@ cc2 = sort(c(which(duplicated(x2$X4)), which(duplicated(x2$X4, fromLast = T))))
 x2_dup = x2[cc2,] # 0
 length(unique(x2$X4)) == nrow(x) # TRUE => no duplicates
 
-path = paste0(project_path, "../../galGal.genes.bed")
+path = paste0("postPhyloAcc/galGal.genes.bed")
 pythonout = read_tsv(path, col_names = F) 
 dim(pythonout) # 17155 > rm chrM > 17142
 cc = sort(c(which(duplicated(pythonout$X4)), which(duplicated(pythonout$X4, fromLast = T))))
@@ -22,4 +23,4 @@ x2_sub = lapply(1:nrow(pythonout_dup), function(i){
   b = pythonout_dup$X4[i]
   x2 %>% filter(grepl(b, X4)) %>% dplyr::select(all_of(c(1:4, 10, 11)))
 }) %>% bind_rows() %>% distinct()
-write_tsv(x2_sub, paste0(project_path, "../../duplicates.tsv"))
+write_tsv(x2_sub, paste0("postPhyloAcc/duplicates.tsv"))
