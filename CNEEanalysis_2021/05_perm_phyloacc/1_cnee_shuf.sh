@@ -19,8 +19,8 @@ module load bedtools/2.29.1 anaconda2/2019.10
 source activate R_phylo
 
 
-mkdir -p postPhyloAcc_re2
-cd postPhyloAcc_re2/
+mkdir -p postPhyloAcc
+cd postPhyloAcc/
 
 ### 1. spatial enrichment analyses input generation
 
