@@ -56,7 +56,7 @@ mkdir -p gene
 
 # gff to bed
 # awk '{print NF}' ${chicken_anno} | sort -u 
-column -s, -t < ${chicken_anno} | awk '$3 == "gene"' | awk '{gsub(/chrMT/, "chrM") ; print}' | awk '$1 != "chrM"' | sed --expression='/gene_biotype=tRNA/d' | sed --expression='/gene_biotype=rRNA/d' > galGal.genes.gff
+awk '$3 == "gene"' ${chicken_anno} | awk '{gsub(/chrMT/, "chrM") ; print}' | awk '$1 != "chrM"' | sed --expression='/gene_biotype=tRNA/d' | sed --expression='/gene_biotype=rRNA/d' > galGal.genes.gff
 gff2bed < galGal.genes.gff | bedtools sort -i - > galGal.gff.bed # gff2bed: from bedops pacakge 
 # no dup
 # awk '{print NF}' galGal.gff.bed | sort -u 
