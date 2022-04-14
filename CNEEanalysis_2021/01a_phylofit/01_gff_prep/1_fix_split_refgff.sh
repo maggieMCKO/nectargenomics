@@ -26,6 +26,9 @@ mkdir -p ${split_chicken_anno_DIR}
 fixChr=${chicken_anno%%.gff}_chrFixed2.gff # can be deleted
 export fixed=${chicken_anno%%.gff}_chrtabFixed2.gff
 
+fixChr_justchr=${chicken_anno%%.gff}_chrFixed_justchr.gff # can be deleted
+export fixed_justchr=${chicken_anno%%.gff}_chrtabFixed_justchr.gff
+
 
 ##### RUN #####
 ### 1. FIXING gff chromosome
@@ -43,6 +46,9 @@ sed 's/\r$//g' GCF_000002315.6_GRCg6a_assembly_report.txt | grep -v "^#" | cut -
 ### 1.2 Fix
 perl replace_chrs.pl ${trans_matrix_for_gff} ${chicken_anno} > ${fixChr}
 awk '{gsub(/Curated\tGenomic/, "Curated_Genomic") ; print}' ${fixChr} > ${fixed}
+
+perl replace_chrs.pl ${trans_matrix_for_maf} ${chicken_anno} > ${fixChr_justchr}
+awk '{gsub(/Curated\tGenomic/, "Curated_Genomic") ; print}' ${fixChr_justchr} > ${fixed_justchr}
 
 ### 2. split gff by chromosomes
 splitGFFbyChr (){
