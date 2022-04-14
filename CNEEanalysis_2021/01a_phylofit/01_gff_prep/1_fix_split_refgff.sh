@@ -47,18 +47,9 @@ sed 's/\r$//g' GCF_000002315.6_GRCg6a_assembly_report.txt | grep -v "^#" | cut -
 perl replace_chrs.pl ${trans_matrix_for_gff} ${chicken_anno} > ${fixChr}
 awk '{gsub(/Curated\tGenomic/, "Curated_Genomic") ; print}' ${fixChr} > ${fixed}
 
-<<<<<<< HEAD
 perl replace_chrs.pl ${trans_matrix_for_maf} ${chicken_anno} > ${fixChr_justchr}
 awk '{gsub(/Curated\tGenomic/, "Curated_Genomic") ; print}' ${fixChr_justchr} > ${fixed_justchr}
 
-=======
-<<<<<<< HEAD
-perl replace_chrs.pl ${trans_matrix_for_maf} ${chicken_anno} > ${fixChr_justchr}
-awk '{gsub(/Curated\tGenomic/, "Curated_Genomic") ; print}' ${fixChr_justchr} > ${fixed_justchr}
-
-=======
->>>>>>> 822eec52adb0e5b7fc58887515d54fba658f9bbc
->>>>>>> b81bd3a69f50927a68d31eba7b08c9e4a4f2d27b
 ### 2. split gff by chromosomes
 splitGFFbyChr (){
     Chr=$1
