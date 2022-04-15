@@ -22,4 +22,4 @@ bedtools slop -i galGal.ncbigenes.sorted.bed -g galGal6.chrom.sizes -b 50000 > l
 
 bedtools intersect -a "accelerated_cnees_noheader.bed" -b "linear/galGal.ncbislop_50kb.bed" -wa -wb > linear/cnee_ncbigene50kb_acc_intersect.bed
 # awk '{print NF}' linear/cnee_ncbigene50kb_acc_intersect.bed  | sort -u
-bedtools groupby -i linear/cnee_ncbigene50kb_acc_intersect.bed -g 10,11,12,13 -c 7 -o max > linear/cnee_ncbigene50kb_acc_maxExp.bed
+bedtools groupby -i linear/cnee_ncbigene50kb_acc_intersect.bed -g 9,10,11,12 -c 7 -o max > linear/cnee_ncbigene50kb_acc_maxExp.bed
