@@ -347,6 +347,12 @@ head(x_nectar_tb)
     ## 6 path:hsa00053     0 0.0000100 Ascorbate and aldarate metabolism
 
 ``` r
+hist(x_nectar_tb$p_val)
+```
+
+![](convergenceLv_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
+``` r
 x_nectar_tb_sig = x_nectar_tb %>% 
   filter(p_val<=0.01)
 nrow(x_nectar_tb_sig) # p_val<= 0.05: 296; p_val<= 0.01: 289
