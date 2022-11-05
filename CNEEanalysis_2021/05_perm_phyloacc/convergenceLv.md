@@ -320,23 +320,32 @@ x_nectar = sapply(tmp_pathways, function(s){
 
 x_nectar_tb = x_nectar %>% as_tibble(rownames = "pathway_hsa") %>% 
   mutate(p_val = (value+1)/100001) %>%  #  (r+1)/(n+1)
-  left_join(custom_anno_id) # %>% 
+  left_join(custom_anno_id) 
 ```
 
     ## Joining, by = "pathway_hsa"
 
 ``` r
-  # filter(p_val<=0.01)
-nrow(x_nectar_tb) # p_val<= 0.05: 296; p_val<= 0.01: 289
+head(x_nectar_tb)
 ```
 
-    ## [1] 336
+    ## # A tibble: 6 × 4
+    ##   pathway_hsa   value     p_val description_hsa                         
+    ##   <chr>         <int>     <dbl> <chr>                                   
+    ## 1 path:hsa00010     0 0.0000100 Glycolysis / Gluconeogenesis            
+    ## 2 path:hsa00030     0 0.0000100 Pentose phosphate pathway               
+    ## 3 path:hsa00040 10492 0.105     Pentose and glucuronate interconversions
+    ## 4 path:hsa00051     0 0.0000100 Fructose and mannose metabolism         
+    ## 5 path:hsa00052     0 0.0000100 Galactose metabolism                    
+    ## 6 path:hsa00053     0 0.0000100 Ascorbate and aldarate metabolism
 
 ``` r
-hist(x_nectar_tb$p_val)
+x_nectar_tb_sig = x_nectar_tb %>% 
+  filter(p_val<=0.01)
+nrow(x_nectar_tb_sig) # p_val<= 0.05: 296; p_val<= 0.01: 289
 ```
 
-![](convergenceLv_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+    ## [1] 289
 
 ### core non-nectar
 
@@ -369,42 +378,56 @@ x_nonnectar = sapply(tmp_pathways, function(s){
 
 x_nonnectar_tb = x_nonnectar %>% as_tibble(rownames = "pathway_hsa") %>% 
   mutate(p_val = (value+1)/100001) %>%  #  (r+1)/(n+1)
-  left_join(custom_anno_id) #%>% 
+  left_join(custom_anno_id) 
 ```
 
     ## Joining, by = "pathway_hsa"
 
 ``` r
-  # filter(p_val<=0.01)
-nrow(x_nonnectar_tb) # p_val<= 0.05: 320; p_val<= 0.01: 318 (after fdr is the same)
+head(x_nonnectar_tb)
 ```
 
-    ## [1] 337
+    ## # A tibble: 6 × 4
+    ##   pathway_hsa   value     p_val description_hsa                         
+    ##   <chr>         <int>     <dbl> <chr>                                   
+    ## 1 path:hsa00010     0 0.0000100 Glycolysis / Gluconeogenesis            
+    ## 2 path:hsa00020  6711 0.0671    Citrate cycle (TCA cycle)               
+    ## 3 path:hsa00030     0 0.0000100 Pentose phosphate pathway               
+    ## 4 path:hsa00040     0 0.0000100 Pentose and glucuronate interconversions
+    ## 5 path:hsa00051     0 0.0000100 Fructose and mannose metabolism         
+    ## 6 path:hsa00052     0 0.0000100 Galactose metabolism
 
 ``` r
 hist(x_nonnectar_tb$p_val)
 ```
 
-![](convergenceLv_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](convergenceLv_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
-ggvenn(list('nectar' = x_nectar_tb$pathway_hsa,
-            'non-nectar' = x_nonnectar_tb$pathway_hsa))
+x_nonnectar_tb_sig = x_nonnectar_tb %>% 
+  filter(p_val<=0.01)
+nrow(x_nonnectar_tb_sig) # p_val<= 0.05: 320; p_val<= 0.01: 318 (after fdr is the same)
 ```
 
-![](convergenceLv_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+    ## [1] 318
 
 ``` r
-onlyInNect = x_nectar_tb %>% 
-  filter(! pathway_hsa %in% x_nonnectar_tb$pathway_hsa ) 
+ggvenn(list('nectar' = x_nectar_tb_sig$pathway_hsa,
+            'non-nectar' = x_nonnectar_tb_sig$pathway_hsa))
+```
+
+![](convergenceLv_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+``` r
+onlyInNect = x_nectar_tb_sig %>% 
+  filter(! pathway_hsa %in% x_nonnectar_tb_sig$pathway_hsa ) 
 onlyInNect
 ```
 
-    ## # A tibble: 5 × 4
-    ##   pathway_hsa   value  p_val description_hsa                                 
-    ##   <chr>         <int>  <dbl> <chr>                                           
-    ## 1 path:hsa00515  4036 0.0404 Mannose type O-glycan biosynthesis              
-    ## 2 path:hsa00533 35638 0.356  Glycosaminoglycan biosynthesis - keratan sulfate
-    ## 3 path:hsa00670 75214 0.752  One carbon pool by folate                       
-    ## 4 path:hsa04672 10192 0.102  Intestinal immune network for IgA production    
-    ## 5 path:hsa05320 75214 0.752  Autoimmune thyroid disease
+    ## # A tibble: 4 × 4
+    ##   pathway_hsa   value     p_val description_hsa                                
+    ##   <chr>         <int>     <dbl> <chr>                                          
+    ## 1 path:hsa00524     0 0.0000100 Neomycin, kanamycin and gentamicin biosynthesis
+    ## 2 path:hsa00982   213 0.00214   Drug metabolism - cytochrome P450              
+    ## 3 path:hsa04392     0 0.0000100 Hippo signaling pathway - multiple species     
+    ## 4 path:hsa05144   117 0.00118   Malaria
