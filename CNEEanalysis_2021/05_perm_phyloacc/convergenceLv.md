@@ -310,7 +310,7 @@ x_nectar = sapply(tmp_pathways, function(s){
   tmp_matrix_acc[is.na(tmp_matrix_acc)] <- 0   # for clades without any acc. cnee, replace NA to 0
   
   # for each random sample (a col in nectar_md), 
-  # check if the expected is greater than or equal to to the observed (num. acc. cnees) for each clade (row)
+  # check if the expected is greater than or equal to the observed (num. acc. cnees) for each clade (row)
   ind <- ( nectar_md >= tmp_matrix_acc ) 
   sum_col = apply(ind, 2, sum) # sum up by col, 
   # if all 4 clades' expected is >= observed, the col will have a sum of 4
@@ -359,7 +359,7 @@ x_nonnectar = sapply(tmp_pathways, function(s){
   tmp_matrix_acc[is.na(tmp_matrix_acc)] <- 0   # for clades without any acc. cnee, replace NA to 0
   
   # for each random sample (a col in nectar_md), 
-  # check if the expected is greater than or equal to to the observed (num. acc. cnees) for each clade (row)
+  # check if the expected is greater than or equal to the observed (num. acc. cnees) for each clade (row)
   ind <- ( nonnectar_md >= tmp_matrix_acc ) 
   sum_col = apply(ind, 2, sum) # sum up by col, 
   # if all 4 clades' expected is >= observed, the col will have a sum of 4
