@@ -1,0 +1,192 @@
+---
+title: "multimonial"
+author: "maggie"
+date: "2022-11-05"
+output: rmarkdown::github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### all cnees within 100kb of a gene 
+```{r}
+set.seed(100)
+project_path = paste0(getwd(), "/postPhyloAcc/")
+out_path = paste0(project_path, "convergentLv/")
+
+## all cnees within 100kb of a gene (created using bedtools)
+path = paste0(project_path, "linear/cnee_ncbigene100kb_intersect_allcnees.bed")
+allcnees = read_tsv(path, col_names = F) %>% 
+  filter(X6 == "protein_coding") %>%
+  dplyr::select(X4, X5, X10) %>%
+  dplyr::rename("gene" = "X4", "id" = "X10", "combo" = "X5") %>%
+  separate(combo, into = c(NA, "ncbi"), sep = "GeneID:", remove = F) %>% 
+  dplyr::select(gene, id) 
+dim(allcnees) # 613780      2
+head(allcnees)
+# gene      id   
+# <chr>     <chr>
+# 1 LOC430443 CNEE3
+
+```
+### kegg annotation
+```{r}
+## custom kegg annotation
+path = paste0(project_path, "ncbi_anno_kegg_hsa_2022-10-22.tsv")
+custom_anno = read_tsv(path)
+
+custom_anno_allcnees = custom_anno %>% left_join(allcnees) %>% 
+  distinct()
+dim(custom_anno_allcnees) # 819389      8
+head(custom_anno_allcnees)
+
+## kegg pathway id and description
+custom_anno_id = custom_anno %>% 
+  dplyr::select(pathway_hsa, description_hsa) %>% distinct()
+head(custom_anno_id)
+
+## total cnees of a kegg pathway
+custom_anno_allcnees_sum = custom_anno_allcnees %>% 
+  group_by(pathway_hsa) %>% 
+  summarise(total_cnees = length(unique(id)))
+dim(custom_anno_allcnees_sum) # 350 2
+head(custom_anno_allcnees_sum)
+
+
+```
+## nectar: pathway, gene, and acc cnees 
+```{r}
+## nectar: pathway, gene, and acc cnees 
+path = paste0(out_path, "convergent_pathwayLv_full_2022-10-24.tsv")
+pathway_acc_anno = read_tsv(path)
+
+## number of acc cnees for each pathway for each clade
+pathway_acc_sum = pathway_acc_anno %>% group_by(pathway_hsa, description_hsa, group) %>% 
+  summarise(total_acccnees = length(unique(id))) %>% 
+  left_join(custom_anno_allcnees_sum)
+head(pathway_acc_sum)
+```
+
+## core non-nectar: pathway, gene, and acc cnees 
+```{r}
+## core non-nectar: pathway, gene, and acc cnees 
+path = paste0(out_path, "convergent_pathwayLv_control_2022-11-05.tsv")
+pathway_acc_anno_con = read_tsv(path)
+
+## number of acc cnees for each pathway for each clade
+pathway_acc_con_sum = pathway_acc_anno_con %>% group_by(pathway_hsa, description_hsa, group) %>% 
+  summarise(total_acccnees = length(unique(id))) %>% 
+  left_join(custom_anno_allcnees_sum)
+head(pathway_acc_con_sum)
+
+```
+
+### Multinomial Distribution
+```{r}
+# num of total cnees 
+t = 363747 
+# num of cnees accelerated in any branch (logBF3 >=10)
+# t = 61468 # same results
+
+
+## probability
+# nectar
+hump = 1691/t
+parp = 1125/t
+honp = 523/t
+sunp = 481/t
+
+# non-nectar
+p = 2418/t
+l = 1591/t
+f = 1863/t
+s = 2310/t
+
+# 100K random samples
+nectar_md = rmultinom(100000, size = 4, prob = c(hump, parp, honp, sunp))
+nonnectar_md = rmultinom(100000, size = 4, prob = c(p, l, f, s))
+dim(nectar_md) # 4 100000
+nectar_md[,1:4]
+
+```
+
+### nectar
+```{r}
+tmp_pathways = unique(pathway_acc_sum$pathway_hsa)
+length(tmp_pathways) # 336
+sp_seq = c("hummingbirds", "parrots", "honeyeaters", "sunbirds_flowerpecker") # as rmultinom
+x_nectar = sapply(tmp_pathways, function(s){
+  # s = tmp_pathways[2]
+  
+  # for each pathway, get the number of acccnee for each clade
+  tmp = pathway_acc_sum %>% filter(pathway_hsa == s)
+  tmp_matrix = tmp[match(sp_seq, tmp$group), ] # sort clades (row) as rmultinom
+  tmp_matrix_acc = tmp_matrix$total_acccnees
+  tmp_matrix_acc[is.na(tmp_matrix_acc)] <- 0   # for clades without any acc. cnee, replace NA to 0
+  
+  # for each random sample (a col in nectar_md), 
+  # check if the expected is greater than or equal to to the observed (num. acc. cnees) for each clade (row)
+  ind <- ( nectar_md >= tmp_matrix_acc ) 
+  sum_col = apply(ind, 2, sum) # sum up by col, 
+  # if all 4 clades' expected is >= observed, the col will have a sum of 4
+  r = sum(sum_col == 4) # sum up how many random samples have more greater than or equal to the observed
+  return(r)
+})
+
+x_nectar_tb = x_nectar %>% as_tibble(rownames = "pathway_hsa") %>% 
+  mutate(p_val = (value+1)/100001) %>%  #  (r+1)/(n+1)
+  left_join(custom_anno_id) # %>% 
+  # filter(p_val<=0.01)
+nrow(x_nectar_tb) # p_val<= 0.05: 296; p_val<= 0.01: 289
+
+```
+```{r}
+hist(x_nectar_tb$p_val)
+```
+
+
+### core non-nectar
+```{r}
+tmp_pathways = unique(pathway_acc_con_sum$pathway_hsa)
+length(tmp_pathways) # 337
+sp_seq = c("swifts", "falcons", "lyrebirds", "passerides")
+x_nonnectar = sapply(tmp_pathways, function(s){
+  # s = tmp_pathways[2]
+  
+  # for each pathway, get the number of acccnee for each clade
+  tmp = pathway_acc_con_sum %>% filter(pathway_hsa == s)
+  tmp_matrix = tmp[match(sp_seq, tmp$group), ] # sort clades (row) as rmultinom
+  tmp_matrix_acc = tmp_matrix$total_acccnees
+  tmp_matrix_acc[is.na(tmp_matrix_acc)] <- 0   # for clades without any acc. cnee, replace NA to 0
+  
+  # for each random sample (a col in nectar_md), 
+  # check if the expected is greater than or equal to to the observed (num. acc. cnees) for each clade (row)
+  ind <- ( nonnectar_md >= tmp_matrix_acc ) 
+  sum_col = apply(ind, 2, sum) # sum up by col, 
+  # if all 4 clades' expected is >= observed, the col will have a sum of 4
+  r = sum(sum_col == 4) # sum up how many random samples have more greater than or equal to the observed
+  return(r)
+})
+
+x_nonnectar_tb = x_nonnectar %>% as_tibble(rownames = "pathway_hsa") %>% 
+  mutate(p_val = (value+1)/100001) %>%  #  (r+1)/(n+1)
+  left_join(custom_anno_id) #%>% 
+  # filter(p_val<=0.01)
+nrow(x_nonnectar_tb) # p_val<= 0.05: 320; p_val<= 0.01: 318 (after fdr is the same)
+```
+```{r}
+hist(x_nonnectar_tb$p_val)
+```
+
+
+```{r}
+ggvenn(list('nectar' = x_nectar_tb$pathway_hsa,
+            'non-nectar' = x_nonnectar_tb$pathway_hsa))
+```
+```{r}
+onlyInNect = x_nectar_tb %>% 
+  filter(! pathway_hsa %in% x_nonnectar_tb$pathway_hsa ) 
+onlyInNect
+```
+
