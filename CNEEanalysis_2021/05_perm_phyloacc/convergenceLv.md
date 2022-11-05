@@ -3,6 +3,13 @@ multimonial
 maggie
 2022-11-05
 
+-   <a href="#nectar-pathway-gene-and-acc-cnees"
+    id="toc-nectar-pathway-gene-and-acc-cnees">nectar: pathway, gene, and
+    acc cnees</a>
+-   <a href="#core-non-nectar-pathway-gene-and-acc-cnees"
+    id="toc-core-non-nectar-pathway-gene-and-acc-cnees">core non-nectar:
+    pathway, gene, and acc cnees</a>
+
 ### all cnees within 100kb of a gene
 
 ``` r
