@@ -432,13 +432,13 @@ x_nectar = sapply(tmp_pathways, function(s){
   rb_sun = rbinom(N_random_samples, N_cnee_pathway, sunp)
   nectar_bi = cbind(rb_hum, rb_par, rb_honey, rb_sun) %>% as_tibble()
   
-  nectar_bi$perm_gm = apply(nectar_bi, 1, function(x) exp(mean(log(x))))
+  nectar_bi$perm_gm = apply(nectar_bi, 1, function(x) exp(mean(log(x[x>0]))))
   nectar_bi$obs_gm = obs_gm
 
   # for each random sample (row), 
   # check if the perm is greater than or equal to the observed (num. acc. cnees) 
   ind <- ( nectar_bi$perm_gm >= nectar_bi$obs_gm ) 
-  r = sum(ind) # sum up by col, 
+  r = sum(na.omit(ind)) # sum up 
   return(r)
 
 })
@@ -457,15 +457,14 @@ head(x_nectar_tb)
 ```
 
     ## # A tibble: 6 × 5
-    ##   pathway_hsa   value   p_val description_hsa                          total_c…¹
-    ##   <chr>         <int>   <dbl> <chr>                                        <int>
-    ## 1 path:hsa00010  6295 0.0630  Glycolysis / Gluconeogenesis                   689
-    ## 2 path:hsa00030  5683 0.0568  Pentose phosphate pathway                      459
-    ## 3 path:hsa00040 41262 0.413   Pentose and glucuronate interconversions       846
-    ## 4 path:hsa00051  6106 0.0611  Fructose and mannose metabolism                957
-    ## 5 path:hsa00052 11293 0.113   Galactose metabolism                           777
-    ## 6 path:hsa00053   498 0.00499 Ascorbate and aldarate metabolism              358
-    ## # … with abbreviated variable name ¹​total_cnees
+    ##   pathway_hsa   value p_val description_hsa                          total_cnees
+    ##   <chr>         <int> <dbl> <chr>                                          <int>
+    ## 1 path:hsa00010 30139 0.301 Glycolysis / Gluconeogenesis                     689
+    ## 2 path:hsa00030 53766 0.538 Pentose phosphate pathway                        459
+    ## 3 path:hsa00040 95616 0.956 Pentose and glucuronate interconversions         846
+    ## 4 path:hsa00051 20900 0.209 Fructose and mannose metabolism                  957
+    ## 5 path:hsa00052 38325 0.383 Galactose metabolism                             777
+    ## 6 path:hsa00053 24654 0.247 Ascorbate and aldarate metabolism                358
 
 ``` r
 hist(x_nectar_tb$p_val)
@@ -501,10 +500,10 @@ ggplot(x_nectar_tb, aes(x = total_cnees, y = p_val)) +
 ``` r
 x_nectar_tb_sig = x_nectar_tb %>% 
   filter(p_val<=0.05)
-nrow(x_nectar_tb_sig) # p_val<= 0.05: 84; p_val<= 0.01: 42
+nrow(x_nectar_tb_sig) # p_val<= 0.05: 20; p_val<= 0.01: 2
 ```
 
-    ## [1] 84
+    ## [1] 20
 
 ## core non-nectar: Binomial
 
@@ -539,13 +538,13 @@ x_nonnectar = sapply(tmp_pathways, function(s){
   rb_swifts = rbinom(N_random_samples, N_cnee_pathway, sw)
   non_nectar_bi = cbind(rb_passerides, rb_lyrebirds, rb_falcons, rb_swifts) %>% as_tibble()
   
-  non_nectar_bi$perm_gm = apply(non_nectar_bi, 1, function(x) exp(mean(log(x))))
+  non_nectar_bi$perm_gm = apply(non_nectar_bi, 1, function(x) exp(mean(log(x[x>0]))))
   non_nectar_bi$obs_gm = obs_gm
 
   # for each random sample (row), 
   # check if the perm is greater than or equal to the observed (num. acc. cnees) 
   ind <- ( non_nectar_bi$perm_gm >= non_nectar_bi$obs_gm ) 
-  r = sum(ind) # sum up by col, 
+  r = sum(na.omit(ind)) # sum up 
   return(r)
 })
 
@@ -563,15 +562,14 @@ head(x_nonnectar_tb)
 ```
 
     ## # A tibble: 6 × 5
-    ##   pathway_hsa   value  p_val description_hsa                          total_cn…¹
-    ##   <chr>         <int>  <dbl> <chr>                                         <int>
-    ## 1 path:hsa00010 25153 0.252  Glycolysis / Gluconeogenesis                    689
-    ## 2 path:hsa00020  2492 0.0249 Citrate cycle (TCA cycle)                       121
-    ## 3 path:hsa00030 29788 0.298  Pentose phosphate pathway                       459
-    ## 4 path:hsa00040 94709 0.947  Pentose and glucuronate interconversions        846
-    ## 5 path:hsa00051 72468 0.725  Fructose and mannose metabolism                 957
-    ## 6 path:hsa00052 93550 0.936  Galactose metabolism                            777
-    ## # … with abbreviated variable name ¹​total_cnees
+    ##   pathway_hsa   value p_val description_hsa                          total_cnees
+    ##   <chr>         <int> <dbl> <chr>                                          <int>
+    ## 1 path:hsa00010 28714 0.287 Glycolysis / Gluconeogenesis                     689
+    ## 2 path:hsa00020 45908 0.459 Citrate cycle (TCA cycle)                        121
+    ## 3 path:hsa00030 43228 0.432 Pentose phosphate pathway                        459
+    ## 4 path:hsa00040 99081 0.991 Pentose and glucuronate interconversions         846
+    ## 5 path:hsa00051 74598 0.746 Fructose and mannose metabolism                  957
+    ## 6 path:hsa00052 99817 0.998 Galactose metabolism                             777
 
 ``` r
 hist(x_nonnectar_tb$p_val)
@@ -605,10 +603,10 @@ ggplot(x_nonnectar_tb, aes(x = total_cnees, y = p_val)) +
 ``` r
 x_nonnectar_tb_sig = x_nonnectar_tb %>% 
   filter(p_val<=0.05)
-nrow(x_nonnectar_tb_sig) # p_val<= 0.05: 41; p_val<= 0.01: 21
+nrow(x_nonnectar_tb_sig) # p_val<= 0.05: 29; p_val<= 0.01: 13
 ```
 
-    ## [1] 41
+    ## [1] 29
 
 ## comparison
 
@@ -625,17 +623,21 @@ onlyInNect = x_nectar_tb_sig %>%
 onlyInNect
 ```
 
-    ## # A tibble: 61 × 5
-    ##    pathway_hsa   value     p_val description_hsa                    total_cnees
-    ##    <chr>         <int>     <dbl> <chr>                                    <int>
-    ##  1 path:hsa00053   498 0.00499   Ascorbate and aldarate metabolism          358
-    ##  2 path:hsa00071     0 0.0000100 Fatty acid degradation                     525
-    ##  3 path:hsa00120    36 0.000370  Primary bile acid biosynthesis             192
-    ##  4 path:hsa00220  1213 0.0121    Arginine biosynthesis                      254
-    ##  5 path:hsa00270     0 0.0000100 Cysteine and methionine metabolism         882
-    ##  6 path:hsa00310  1474 0.0147    Lysine degradation                        2373
-    ##  7 path:hsa00330   274 0.00275   Arginine and proline metabolism            972
-    ##  8 path:hsa00380   250 0.00251   Tryptophan metabolism                     1075
-    ##  9 path:hsa00450  1491 0.0149    Selenocompound metabolism                  272
-    ## 10 path:hsa00470   560 0.00561   D-Amino acid metabolism                    281
-    ## # … with 51 more rows
+    ## # A tibble: 14 × 5
+    ##    pathway_hsa   value   p_val description_hsa                           total…¹
+    ##    <chr>         <int>   <dbl> <chr>                                       <int>
+    ##  1 path:hsa00071   202 0.00203 Fatty acid degradation                        525
+    ##  2 path:hsa00270   222 0.00223 Cysteine and methionine metabolism            882
+    ##  3 path:hsa00310  2578 0.0258  Lysine degradation                           2373
+    ##  4 path:hsa00330  3771 0.0377  Arginine and proline metabolism               972
+    ##  5 path:hsa00380  3009 0.0301  Tryptophan metabolism                        1075
+    ##  6 path:hsa00563  4139 0.0414  Glycosylphosphatidylinositol (GPI)-ancho…     708
+    ##  7 path:hsa00620  1863 0.0186  Pyruvate metabolism                           517
+    ##  8 path:hsa00900  3859 0.0386  Terpenoid backbone biosynthesis               464
+    ##  9 path:hsa04115  2219 0.0222  p53 signaling pathway                        1770
+    ## 10 path:hsa04137  4599 0.0460  Mitophagy - animal                           1550
+    ## 11 path:hsa04151  3845 0.0385  PI3K-Akt signaling pathway                   6076
+    ## 12 path:hsa04217  3183 0.0318  Necroptosis                                  1310
+    ## 13 path:hsa04512  2000 0.0200  ECM-receptor interaction                     2176
+    ## 14 path:hsa04622  2253 0.0225  RIG-I-like receptor signaling pathway        1098
+    ## # … with abbreviated variable name ¹​total_cnees
