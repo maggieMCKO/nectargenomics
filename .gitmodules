@@ -1,0 +1,3 @@
+[submodule "selection_screen_tools"]
+	path = selection_screen_tools
+	url = https://github.com/osipovarev/selection_screen_tools
