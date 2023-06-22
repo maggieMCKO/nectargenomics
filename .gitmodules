@@ -4,3 +4,6 @@
 [submodule "rnaseq_tools"]
 	path = rnaseq_tools
 	url = https://github.com/osipovarev/rnaseq_tools
+[submodule "msa_tools"]
+	path = msa_tools
+	url = https://github.com/osipovarev/msa_tools
