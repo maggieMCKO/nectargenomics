@@ -22,6 +22,9 @@ mkdir -p ${dir_hal} ${dir_psl} ${dir_cneefa} ${dir_cneeconcatfa}
 
 ### RUN
 
+module purge
+module load bedtools/2.29.1
+
 getfa (){
     export sp=$1
 

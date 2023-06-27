@@ -83,4 +83,4 @@ grep "multiple_liftover_regions" final_cnees_long_liftover_parsing_log | cut -f1
 
 grep "no_liftover" final_cnees_long_liftover_parsing_log | cut -f1,1 | sort | uniq -c | sed "s/^[ \t]*//" > no_liftOver_byCNEE.log
 
-find ${dir_psl} |grep "_liftover.bed" | xargs wc -l > "${dir_psl}liftover_bed_summary.tab"
+find . |grep "_liftover.bed" | xargs wc -l > "liftover_bed_summary.tab"
