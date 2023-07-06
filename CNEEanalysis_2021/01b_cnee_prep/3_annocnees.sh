@@ -23,7 +23,7 @@ module load bedtools/2.29.1
 # gunzip GCF_000002315.6_GRCg6a_genomic.gff.gz
 awk 'BEGIN{OFS="\t";} {if ($3 ~ /exon/) print $1, $4-1, $5}' ${chicken_anno} | bedtools sort -i - | bedtools merge -i - > bed_outputs/galGal6.exon.bed
 
-# filte small (<50bp) CNEEs
+# remove small (<50bp) CNEEs
 awk '{if ($3-$2 >= 50) print $0}' ${merged_bed} > ${merged_bed_filtered}
 awk '{print $3-$2}' ${merged_bed_filtered} > ${merged_bed_filtered_len}
 
