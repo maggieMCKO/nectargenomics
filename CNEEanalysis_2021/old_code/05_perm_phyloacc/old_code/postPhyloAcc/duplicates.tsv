@@ -1,0 +1,50 @@
+X1	X2	X3	X4	X10	gene
+chr1	81408653	81422638	gene-B4GALT3	ID=gene-B4GALT3;Dbxref=CGNC:15822   GeneID:418342;Name=B4GALT3;gbkey=Gene;gene=B4GALT3;gene_biotype=protein_coding	B4GALT3
+chr25	3951274	3955132	gene-B4GALT3-2	ID=gene-B4GALT3-2;Dbxref=GeneID:107049101;Name=B4GALT3;gbkey=Gene;gene=B4GALT3;gene_biotype=protein_coding	B4GALT3-2
+chr1	155899819	155904177	gene-KCTD12	ID=gene-KCTD12;Dbxref=GeneID:107051871;Name=KCTD12;gbkey=Gene;gene=KCTD12;gene_biotype=protein_coding	KCTD12
+chr4	11383387	11386419	gene-KCTD12-2	ID=gene-KCTD12-2;Dbxref=CGNC:7330   GeneID:425504;Name=KCTD12;gbkey=Gene;gene=KCTD12;gene_biotype=protein_coding	KCTD12-2
+chr13	10908583	10912343	gene-MXD3	ID=gene-MXD3;Dbxref=CGNC:53149   GeneID:427629;Name=MXD3;gbkey=Gene;gene=MXD3;gene_biotype=protein_coding	MXD3
+chr13	10912443	10914188	gene-MXD3-2	ID=gene-MXD3-2;Dbxref=GeneID:101751218;Name=MXD3;gbkey=Gene;gene=MXD3;gene_biotype=protein_coding	MXD3-2
+chr18	3410300	3454840	gene-FOXK2	ID=gene-FOXK2;Dbxref=GeneID:107049008;Name=FOXK2;gbkey=Gene;gene=FOXK2;gene_biotype=protein_coding	FOXK2
+chr18	3464395	3469333	gene-FOXK2-2	ID=gene-FOXK2-2;Dbxref=CGNC:1094   GeneID:427798;Name=FOXK2;gbkey=Gene;gene=FOXK2;gene_biotype=protein_coding	FOXK2-2
+chr2	21749404	21771949	gene-PTTG1IP	ID=gene-PTTG1IP;Dbxref=CGNC:4229   GeneID:420545;Name=PTTG1IP;gbkey=Gene;gene=PTTG1IP;gene_biotype=protein_coding	PTTG1IP
+chr9	5328519	5334059	gene-PTTG1IP-2	ID=gene-PTTG1IP-2;Dbxref=GeneID:107051859;Name=PTTG1IP;gbkey=Gene;gene=PTTG1IP;gene_biotype=protein_coding	PTTG1IP-2
+chr1	55732611	55749486	gene-PARP12	ID=gene-PARP12;Dbxref=CGNC:9694   GeneID:418100;Name=PARP12;gbkey=Gene;gene=PARP12;gene_biotype=protein_coding	PARP12
+chr1	75024939	75040594	gene-PARP11	ID=gene-PARP11;Dbxref=CGNC:10681   GeneID:418264;Name=PARP11;gbkey=Gene;gene=PARP11;gene_biotype=protein_coding	PARP11
+chr10	18256900	18261691	gene-PARP16	ID=gene-PARP16;Dbxref=CGNC:5565   GeneID:415534;Name=PARP16;gbkey=Gene;gene=PARP16;gene_biotype=protein_coding	PARP16
+chr13	12760442	12803993	gene-LARP1	ID=gene-LARP1;Dbxref=CGNC:2939   GeneID:416258;Name=LARP1;gbkey=Gene;gene=LARP1;gene_biotype=protein_coding	LARP1
+chr19	6334038	6345071	gene-NSRP1	ID=gene-NSRP1;Dbxref=CGNC:3073   GeneID:417588;Name=NSRP1;gbkey=Gene;gene=NSRP1;gene_biotype=protein_coding	NSRP1
+chr2	110575282	110586238	gene-RP1	ID=gene-RP1;Dbxref=GeneID:107052728;Name=RP1;gbkey=Gene;gene=RP1;gene_biotype=protein_coding	RP1
+chr2	110601776	110680167	gene-RP1-2	ID=gene-RP1-2;Dbxref=CGNC:51415   GeneID:421123;Name=RP1;gbkey=Gene;gene=RP1;gene_biotype=protein_coding	RP1-2
+chr2	126080244	126111054	gene-ESRP1	ID=gene-ESRP1;Dbxref=CGNC:11921   GeneID:420228;Name=ESRP1;gbkey=Gene;gene=ESRP1;gene_biotype=protein_coding	ESRP1
+chr2	129872009	129924602	gene-LRP12	ID=gene-LRP12;Dbxref=CGNC:12013   GeneID:420267;Name=LRP12;gbkey=Gene;gene=LRP12;gene_biotype=protein_coding	LRP12
+chr20	9629089	9640049	gene-ARFRP1	ID=gene-ARFRP1;Dbxref=CGNC:4579   GeneID:419261;Name=ARFRP1;gbkey=Gene;gene=ARFRP1;gene_biotype=protein_coding	ARFRP1
+chr23	2551020	2555964	gene-RSRP1	ID=gene-RSRP1;Dbxref=CGNC:51037   GeneID:419592;Name=RSRP1;gbkey=Gene;gene=RSRP1;gene_biotype=protein_coding	RSRP1
+chr3	19522658	19548143	gene-RRP15	ID=gene-RRP15;Dbxref=CGNC:7320   GeneID:421353;Name=RRP15;gbkey=Gene;gene=RRP15;gene_biotype=protein_coding	RRP15
+chr3	48355503	48374180	gene-LRP11	ID=gene-LRP11;Dbxref=CGNC:14055   GeneID:421629;Name=LRP11;gbkey=Gene;gene=LRP11;gene_biotype=protein_coding	LRP11
+chr3	106746845	106772231	gene-RP1L1	ID=gene-RP1L1;Dbxref=CGNC:71538   GeneID:101752129;Name=RP1L1;gbkey=Gene;gene=RP1L1;gene_biotype=protein_coding	RP1L1
+chr33	5540469	5543186	gene-RP11-762I7.5	ID=gene-RP11-762I7.5;Dbxref=CGNC:52783   GeneID:426418;Name=RP11-762I7.5;gbkey=Gene;gene=RP11-762I7.5;gene_biotype=protein_coding	ID=gene-RP11-762I7.5;Dbxref=CGNC:52783   GeneID:426418;Name=RP11-762I7.5;gbkey=Gene;gene=RP11-762I7.5;gene_biotype=protein_coding
+chr4	34394092	34428885	gene-LARP1B	ID=gene-LARP1B;Dbxref=CGNC:7763   GeneID:422500;Name=LARP1B;gbkey=Gene;gene=LARP1B;gene_biotype=protein_coding	LARP1B
+chr5	30872491	30912029	gene-RASGRP1	ID=gene-RASGRP1;Dbxref=CGNC:7404   GeneID:423290;Name=RASGRP1;gbkey=Gene;gene=RASGRP1;gene_biotype=protein_coding	RASGRP1
+chr6	17399195	17404444	gene-RP11-400G3.5	ID=gene-RP11-400G3.5;Dbxref=CGNC:65060   GeneID:100858007;Name=RP11-400G3.5;gbkey=Gene;gene=RP11-400G3.5;gene_biotype=protein_coding	ID=gene-RP11-400G3.5;Dbxref=CGNC:65060   GeneID:100858007;Name=RP11-400G3.5;gbkey=Gene;gene=RP11-400G3.5;gene_biotype=protein_coding
+chr7	28217789	28255934	gene-PARP14	ID=gene-PARP14;Dbxref=CGNC:66881   GeneID:101747378;Name=PARP14;gbkey=Gene;gene=PARP14;gene_biotype=protein_coding	PARP14
+chr7	31847234	32428153	gene-LRP1B	ID=gene-LRP1B;Dbxref=CGNC:9423   GeneID:424301;Name=LRP1B;gbkey=Gene;gene=LRP1B;gene_biotype=protein_coding	LRP1B
+chr9	22401712	22412513	gene-NLRP1L	ID=gene-NLRP1L;Dbxref=CGNC:52318   GeneID:425015;Name=NLRP1L;gbkey=Gene;gene=NLRP1L;gene_biotype=protein_coding	NLRP1L
+chr9	23804506	23806333	gene-SERP1	ID=gene-SERP1;Dbxref=CGNC:77130   GeneID:107054146;Name=SERP1;gbkey=Gene;gene=SERP1;gene_biotype=protein_coding	SERP1
+chrZ	46095232	46101525	gene-SRP19	ID=gene-SRP19;Dbxref=CGNC:122   GeneID:770061;Name=SRP19;gbkey=Gene;gene=SRP19;gene_biotype=protein_coding	SRP19
+chr20	3814505	3823636	gene-FAM83D	ID=gene-FAM83D;Dbxref=CGNC:2243   GeneID:425103;Name=FAM83D;gbkey=Gene;gene=FAM83D;gene_biotype=protein_coding	FAM83D
+chr20	3822375	3828043	gene-FAM83D-2	ID=gene-FAM83D-2;Dbxref=GeneID:419171;Name=FAM83D;gbkey=Gene;gene=FAM83D;gene_biotype=protein_coding	FAM83D-2
+chr22	7586	13288	gene-MAT2A	ID=gene-MAT2A;Dbxref=GeneID:112530175;Name=MAT2A;gbkey=Gene;gene=MAT2A;gene_biotype=protein_coding	MAT2A
+chrZ	53526312	53552053	gene-MAT2A-2	ID=gene-MAT2A-2;Dbxref=CGNC:53040   GeneID:427292;Name=MAT2A;gbkey=Gene;gene=MAT2A;gene_biotype=protein_coding	MAT2A-2
+chr27	4717289	4718683	gene-RPRML-2	ID=gene-RPRML-2;Dbxref=GeneID:112529959;Name=RPRML;gbkey=Gene;gene=RPRML;gene_biotype=protein_coding	RPRML-2
+chr7	35627455	35627955	gene-RPRML	ID=gene-RPRML;Dbxref=CGNC:16993   GeneID:419946;Name=RPRML;gbkey=Gene;gene=RPRML;gene_biotype=protein_coding	RPRML
+chr27	7166287	7171369	gene-NR1D1	ID=gene-NR1D1;Dbxref=GeneID:107055301;Name=NR1D1;gbkey=Gene;gene=NR1D1;gene_biotype=protein_coding	NR1D1
+chr28	2283344	2295937	gene-NR1D1-2	ID=gene-NR1D1-2;Dbxref=CGNC:54123   GeneID:431047;Name=NR1D1;gbkey=Gene;gene=NR1D1;gene_biotype=protein_coding	NR1D1-2
+chr30	276643	281043	gene-SUV39H1	ID=gene-SUV39H1;Dbxref=GeneID:112529927;Name=SUV39H1;gbkey=Gene;gene=SUV39H1;gene_biotype=protein_coding	SUV39H1
+chr30	281257	284571	gene-SUV39H1-2	ID=gene-SUV39H1-2;Dbxref=CGNC:65392   GeneID:100857640;Name=SUV39H1;gbkey=Gene;gene=SUV39H1;gene_biotype=protein_coding	SUV39H1-2
+chr30	770476	784771	gene-RASAL3	ID=gene-RASAL3;Dbxref=GeneID:101747651;Name=RASAL3;gbkey=Gene;gene=RASAL3;gene_biotype=protein_coding	RASAL3
+chr30	785743	835158	gene-RASAL3-2	ID=gene-RASAL3-2;Dbxref=CGNC:52700   GeneID:426166;Name=RASAL3;gbkey=Gene;gene=RASAL3;gene_biotype=protein_coding	RASAL3-2
+chr5	12686680	12688483	gene-HPS5	ID=gene-HPS5;Dbxref=CGNC:51884   GeneID:423079;Name=HPS5;gbkey=Gene;gene=HPS5;gene_biotype=protein_coding	HPS5
+chr5	12692209	12712219	gene-HPS5-2	ID=gene-HPS5-2;Dbxref=GeneID:107048993;Name=HPS5;gbkey=Gene;gene=HPS5;gene_biotype=protein_coding	HPS5-2
+chr8	28915124	28917589	gene-TCTEX1D1	ID=gene-TCTEX1D1;Dbxref=GeneID:112529932;Name=TCTEX1D1;gbkey=Gene;gene=TCTEX1D1;gene_biotype=protein_coding	TCTEX1D1
+chr8	28918709	28927241	gene-TCTEX1D1-2	ID=gene-TCTEX1D1-2;Dbxref=CGNC:14252   GeneID:424701;Name=TCTEX1D1;gbkey=Gene;gene=TCTEX1D1;gene_biotype=misc_RNA	TCTEX1D1-2
