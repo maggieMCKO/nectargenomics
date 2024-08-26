@@ -1,0 +1,1134 @@
+---
+title: "Downstream analysis of phyloacc - control without dollo (mod exp cal)"
+author: "maggie"
+date: "2024-07-27"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+  
+```{r, setup=TRUE}
+.libPaths()
+libpath = "/opt/R/4.2.0/lib64/R/library"
+# # library(tidyverse, lib.loc = libpath) # 2.0.0
+# library(tidytree) # 0.4.6
+# library(ggtree, lib.loc = libpath)
+library(tidyverse)
+library(treeio)
+library(ggtree)
+theme_m = theme_classic() + theme(legend.key.size = unit(8, 'pt'))
+```
+
+## load ids for conversion
+```{r}
+# for getting coordinates
+tmp_path = paste0("/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/01b_cnee_prep/bed_outputs/galGal6_final_conserved_CNEEs.bed")
+ggal_final_cnees = read_tsv(tmp_path, col_names = c("chr", 'start', 'end', 'id'))
+nrow(ggal_final_cnees) # 363747
+
+# for getting original cnee ID
+tmp_path = paste0("/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/inputs/mod/galloseq.part.bed")
+galloseq.part = read_tsv(tmp_path, col_names = c('id', 'start', 'end'))
+nrow(galloseq.part) # 363476
+
+```
+
+## load phyoacc outputs
+```{r load_phyloacc_outputs}
+project_path = paste0(getwd(), "/phyloacc-out-02-20-2024.01-26-12/results/")
+# project_path = paste0(getwd(), "/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/phyloacc-out-02-20-2024.01-26-12/results/")
+
+# 1.  score
+path = paste0(project_path, "elem_lik.txt")
+score = read_tsv(path, comment = "#")
+dim(score) # 363213     21
+# final set total after aligned: 363476
+sum(is.na(score)) # 63156
+sum(is.na(score$accel.lineages.m1)) # 56284
+sum(is.na(score$accel.lineages.m2)) # 4184
+sum(is.na(score$conserved.lineages.m1)) # 336
+sum(is.na(score$conserved.lineages.m2)) # 336
+sum(score$logbf3 >0) # 191902
+
+# 2. posterior Z of M2
+path = paste0(project_path, "rate_postZ_M2.txt")
+postZ = read_tsv(path) # %>% filter(!is.na(n_rate))
+dim(postZ) # 362877    354
+sum(is.na(postZ$n_rate)) # 0
+sum(is.na(postZ)) # 0
+
+postZ_6 = postZ[, 1:6] 
+
+# full model post. probability
+ind = grep("_3", names(postZ))
+# postZp = score %>% dplyr::select(No., ID) %>%
+#   right_join(postZ %>% dplyr::select(all_of(c(1, ind))) ) # pp of acc. CNEE
+postZp = postZ %>% dplyr::select(all_of(c(1, ind)))  # pp of acc. CNEE
+dim(postZp) # 362877     88
+sum(is.na(postZp$`Locus ID`)) # 0
+
+# x = postZp %>% filter(is.na(ID)) # for checking
+# postZp = postZp %>% filter(!is.na(ID))
+names(postZp) =  gsub("_3", "", names(postZp))
+
+# missing species post. probability
+ind = grep("_0", names(postZ))
+postZm = postZ %>% dplyr::select(all_of(c(1, ind))) # pp of acc. CNEE
+dim(postZm) # 362877     88
+names(postZm) =  gsub("_0", "", names(postZm))
+
+# for id conversion
+score_ids = score %>%
+  mutate(id = galloseq.part$id[original.id]) %>%
+  # filter(logbf1 > 0 & logbf2 > 0 & logbf3 > 0) %>%
+  left_join(postZ_6, by = c("phyloacc.id" = "Locus ID")) %>%
+  bind_cols(ori = 'nectar_nodollo')
+score_ids_sel = score_ids %>% dplyr::select(matches("id"))
+
+
+# 3. tree
+path = paste0(project_path, "elem_lik.txt")
+tree_tx = read_table(path, skip = 35, n_max = 36, col_names = F)
+tree = read.tree(text = tree_tx$X3)
+plot(tree, cex = 0.5)
+
+# 4. species name table
+path = paste0(project_path, "../../input/commonN.txt")
+common_name = read_tsv(path, col_names = F)
+
+targets = c("HLlepAsp1", "HLdicExi1", 
+            "HLlicPen1", "HLlicMelCas1", "HLphyNov1", "HLgraPic1", 
+            "HLlorGal1", "HLtriMol2", "HLaraSol1", "HLamaAes1", 
+            "HLphaSup1", "HLfloFus1", "HLcalAnn5") # target species (rm pardalote and cinPul)
+
+# all_sp = treeData$tree$tip.label
+# non_target = setdiff(all_sp, targets)
+
+```
+
+## plot functions
+```{r}
+
+plot_single_cnee = function(cneeid, inputdf = postZp, target_species = NULL, show_legend = TRUE, show_all_tips = FALSE, xratio = 0.8){
+  # cneeid = '808-17'
+  # inputdf = postZp
+  # target_species = targets; xratio = 0.8
+  
+  # pp data
+  atmp = inputdf %>% filter(`Locus ID` == cneeid) %>% 
+    pivot_longer(cols = 2:last_col(), names_to = 'label', values_to = 'pp')
+  
+  # missing data
+  atmp_m = postZm %>% filter(`Locus ID` == cneeid) %>% 
+    pivot_longer(cols = 2:last_col(), names_to = 'label', values_to = 'missing') %>% 
+    mutate(
+      # group: only show targets and color missing targets grey
+      group = ifelse(label %in% target_species, 'Nectar', NA), 
+      group = ifelse(missing >0 & group == 'Nectar', 'Missing', group),
+      # all_lab: Nectar, non-target, and color missing targets grey; if non-target and missing, this will be a NA
+      all_lab = 'Present',
+      all_lab = ifelse(missing >0 & group == 'Nectar', 'Missing', all_lab)) 
+ 
+  # get No.
+  # aNo = atmp$No.[1] # for postZ # old no need
+  
+  # get rates and other pp
+  atmp_full = postZ %>% filter(`Locus ID` == cneeid)
+  ratio1 = atmp_full$c_rate # conserv rate
+  ratio2 = atmp_full$n_rate # acc rate
+  r1 = round(ratio1, 2)
+  r2 = round(ratio2, 2)
+  atmp_full_long = atmp_full %>% 
+    dplyr::select(matches("_[1|2|3]$")) %>% 
+    pivot_longer(cols = matches("_[1|2|3]$"), names_to = c("label", "state"), names_pattern = "(.*)_(\\d)") %>% 
+    pivot_wider(id_cols = "label", names_from = "state", values_from = "value") %>% 
+    mutate(edge_len = `1` + `2`*ratio1 + `3`*ratio2) %>% 
+    dplyr::select(-matches("[1|2|3]"))
+  
+  # combine
+  atmpc = atmp_full_long %>% left_join(atmp) %>% 
+    left_join(atmp_m)
+  atmpc$group = factor(atmpc$group, levels = c('Nectar', 'Missing', NA))
+  atmpc$all_lab = factor(atmpc$all_lab, levels = c('Present', 'Missing', NA))
+  
+  # get logBFs
+  stmp = score %>% filter(`phyloacc.id` == cneeid)
+  b1 = round(stmp$logbf1, 2); b2 = round(stmp$logbf2, 2); b3 = round(stmp$logbf3, 2)
+  
+  # tree + pp data
+  atree_for_plot = tree
+  # atree_data = treeio::treedata(phylo = atree_for_plot, data = atmpc) # doesn't work
+  atree_data = atree_for_plot %>% as_tibble() %>% 
+    full_join(atmpc, by = 'label') %>% 
+    mutate( branch.length = branch.length*edge_len ) %>% dplyr::select(-edge_len) %>% 
+    as.treedata()
+  atree_data@phylo$tip.label = tree$tip.label
+  # x_limit = max(atree_data@phylo$edge.length) * 0.25
+  
+  # color scale for pp
+  rbPal_tmp = colorspace::diverge_hcl(3, palette = "Blue-Red")
+  # high_col = rbPal_tmp[3]; mid_col = rbPal_tmp[2]; low_col = rbPal_tmp[1]
+  p_tree = ggtree(atree_data, aes(color = pp)) +
+    # scale_color_gradient2(high = high_col, mid = mid_col, low = low_col, midpoint = 0.9, breaks = c(0, 0.9, 1)) +
+    scale_color_gradientn(colours = rbPal_tmp, 
+                          values = scales::rescale(c(0, 0.899999, 1)), 
+                          breaks = c(0, signif(0.899999, 2), 1)) +
+    # geom_text(aes(label=node), hjust=-.3) +
+    # xlim_tree(x_limit) +
+    hexpand(xratio) + # larger number, narrower
+    ggtitle(cneeid, 
+            # subtitle = substitute(paste(r[1], "=", r1, ", ", r[2], "=", r2), list(r1 =round(ratio1,2), r2 = round(ratio2,2)))
+            subtitle = bquote(atop("r"[1]~" = "~.(r1)~", r"[2]~" = "~.(r2),
+                                       "logbf1 = "~.(b1)~", logbf2 = "~.(b2)~", logbf3 = "~.(b3)))
+            ) +
+    theme_tree() + 
+    theme(plot.title = element_text(hjust = 0.5, size = 8), 
+          plot.subtitle = element_text(hjust = 0.5, size = 6),
+          legend.text = element_text(size = 6),
+          legend.title = element_text(size = 6), 
+          legend.key.size = unit(8, 'pt')) ; 
+  # p_tree = p_tree %>% ggtree::rotate(45); p_tree # give up for now
+  
+  if(show_all_tips){
+    p_tree = p_tree +
+      geom_tiplab(mapping = aes(alpha = all_lab), color = 'black', offset = 0, size = 2) +
+      scale_alpha_manual(values = c(1, 0.5), na.value = 1, breaks = c('Present', 'Missing')) +  # here NA is for non-target missing
+      guides(alpha = guide_legend(override.aes = aes(label = "-"))) ; p_tree
+  }else{
+    p_tree = p_tree +
+      geom_tiplab(mapping = aes(alpha = group), color = 'black', offset = 0, size = 2) +
+      scale_alpha_manual(values = c(1, 0.5), na.value = 0, breaks = c('Nectar', 'Missing')) +
+      guides(alpha = guide_legend(override.aes = aes(label = "-"))) ; p_tree
+  }
+  if(show_legend == F){ p_tree = p_tree + theme(legend.position = 'none') }
+  return(p_tree)
+}
+
+# lapply('808-17', FUN = plot_single_cnee, target_species = targets) # works
+
+```
+
+## distribution of bayers factors
+### distribution of logbf1
+BF1 = P(Y|M1)/P(Y|M0)
+
+M1: lineage-specific model with specific shift pattern
+
+M0: null model with no acceleration in any lineage 
+
+```{r logbf1, fig.height=3, fig.width=10}
+nbins = 100
+
+# logbf1
+x_tmp = score$logbf1
+print(range(x_tmp))
+res = hist(x_tmp, breaks = 50, plot = FALSE)
+y_anno = max(res$counts, na.rm = T) * 0.6
+x_anno = signif(ave(c(median(x_tmp, na.rm = T), max(x_tmp, na.rm = T)))[1] , digits = 2) * 1
+
+pbf1 = ggplot(score, aes(x = logbf1)) +
+  geom_histogram(bins = nbins) +
+  scale_x_continuous(expand = c(0,0,0.05,0)) +
+  scale_y_continuous(expand = c(0,0,0.05,0), name = "Freq") +
+  annotate("text", x = x_anno, y = y_anno, 
+           label = paste0("median = ", signif(median(x_tmp, na.rm = T), digits = 2), 
+                          "\nmax = ", signif(max(x_tmp, na.rm = T), digits = 2), 
+                          "\nmin = ", signif(min(x_tmp, na.rm = T), digits = 2)), 
+           hjust = 0) +
+  geom_vline(xintercept = 0, color = 'red') +
+  annotate("text", x = 100, y = 50000, 
+           label = "x = 0", 
+           hjust = 0.5, color = 'red') +
+  theme_m; 
+
+pbf1_2 = ggplot(score, aes(x = logbf1)) +
+  geom_histogram(bins = nbins) +
+  scale_x_continuous(expand = c(0,0,0.05,0)) +
+  scale_y_continuous(expand = c(0,0,0.05,0), name = "Freq") +
+  ggtitle('zoom in') +
+  coord_cartesian(xlim = c(1, 100)) +
+  theme_m + theme(plot.title = element_text(hjust = 0.5)); 
+
+cowplot::plot_grid(pbf1, pbf1_2, nrow = 1)
+
+```
+
+### distribution of logbf2
+BF2 = P(Y|M1)/P(Y|M2)
+
+M1: lineage-specific model with specific shift pattern
+
+M2: full model allowing arbitrary shifts
+
+
+```{r logbf2, fig.height=3, fig.width=10}
+nbins = 100
+
+# logbf2
+x_tmp = score$logbf2
+print(range(x_tmp))
+res = hist(x_tmp, breaks = 50, plot = FALSE)
+y_anno = max(res$counts, na.rm = T) * 0.6
+x_anno = signif(ave(c(median(x_tmp, na.rm = T), min(x_tmp, na.rm = T)))[1] , digits = 2) * 1
+
+pbf2 = ggplot(score, aes(x = logbf2)) +
+  geom_histogram(bins = nbins) +
+  scale_x_continuous(expand = c(0,0,0.05,0)) +
+  scale_y_continuous(expand = c(0,0,0.05,0), name = "Freq") +
+  annotate("text", x = x_anno, y = y_anno, 
+           label = paste0("median = ", signif(median(x_tmp, na.rm = T), digits = 2), 
+                          "\nmax = ", signif(max(x_tmp, na.rm = T), digits = 2), 
+                          "\nmin = ", signif(min(x_tmp, na.rm = T), digits = 2)), 
+           hjust = 0) +
+  geom_vline(xintercept = 0, color = 'red') +
+  annotate("text", x = 10, y = 50000, 
+           label = "x = 0", 
+           hjust = 0.5, color = 'red') +
+  theme_m; 
+
+pbf2_2 = ggplot(score, aes(x = logbf2)) +
+  geom_histogram(bins = nbins) +
+  scale_x_continuous(expand = c(0,0,0.05,0)) +
+  scale_y_continuous(expand = c(0,0,0.05,0), name = "Freq") +
+  coord_cartesian(xlim = c(0, 50)) +
+  ggtitle('zoom in') +
+  theme_m + theme(plot.title = element_text(hjust = 0.5)); 
+
+cowplot::plot_grid(pbf2, pbf2_2, nrow = 1)
+
+```
+
+### distribution of logbf3
+BF3 = P(Y|M2)/P(Y|M0)
+
+M2: full model allowing arbitrary shifts
+
+M0: null model with no acceleration in any lineage 
+
+
+```{r logbf3, fig.height=3, fig.width=10}
+nbins = 100
+
+# logbf3
+x_tmp = score$logbf3
+print(range(x_tmp))
+res = hist(x_tmp, breaks = 50, plot = FALSE)
+y_anno = max(res$counts, na.rm = T) * 0.6
+x_anno = signif(ave(c(median(x_tmp, na.rm = T), max(x_tmp, na.rm = T)))[1] , digits = 2) * 1
+
+pbf3 = ggplot(score, aes(x = logbf3)) +
+  geom_histogram(bins = nbins) +
+  scale_x_continuous(expand = c(0,0,0.05,0)) +
+  scale_y_continuous(expand = c(0,0,0.05,0), name = "Freq") +
+  annotate("text", x = x_anno, y = y_anno, 
+           label = paste0("median = ", signif(median(x_tmp, na.rm = T), digits = 2), 
+                          "\nmax = ", signif(max(x_tmp, na.rm = T), digits = 2), 
+                          "\nmin = ", signif(min(x_tmp, na.rm = T), digits = 2)), 
+           hjust = 0) +
+  geom_vline(xintercept = 0, color = 'red') +
+  annotate("text", x = 100, y = 50000, 
+           label = "x = 0", 
+           hjust = 0.5, color = 'red') +
+  theme_m; 
+
+pbf3_2 = ggplot(score, aes(x = logbf3)) +
+  geom_histogram(bins = nbins) +
+  scale_x_continuous(expand = c(0,0,0.05,0)) +
+  scale_y_continuous(expand = c(0,0,0.05,0), name = "Freq") +
+  coord_cartesian(xlim = c(0, 50)) +
+  ggtitle('zoom in') +
+  theme_m + theme(plot.title = element_text(hjust = 0.5)); 
+
+cowplot::plot_grid(pbf3, pbf3_2, nrow = 1)
+
+```
+
+### distribution of logbf1 to logbf3
+```{r  logbf1-3, fig.height=3, fig.width=10}
+cowplot::plot_grid(pbf1, pbf2, pbf3, nrow = 1)
+```
+
+#### log Bayes factors thresholds:
+* log-BF1>20 and log-BF2>0 (Hu avian)
+* log-BF1>5 and log-BF2>5 (Hu mammal)
+* BF1 >= 10, and BF2 >= 1 (Sackton)
+
+plotting cness with logbf1 > 0 & logbf2 > 0 & logbf3 > 0
+
+```{r logbf1-3_gt0, fig.height=3, fig.width=10}
+cowplot::plot_grid(pbf1_2, pbf2_2, pbf3_2, nrow = 1)
+```
+
+## logBFs counts
+```{r logbf1-3_counts, fig.height=3, fig.width=8}
+# everything greater than the threshold
+score_summary = score %>%
+  mutate(bf1_cat_gt0 = ifelse(logbf1 >=0, 1, 0),
+         bf1_cat_gt2 = ifelse(logbf1 >=2, 1, 0),
+         bf1_cat_gt5 = ifelse(logbf1 >=5, 1, 0),
+         bf1_cat_gt10 = ifelse(logbf1 >=10, 1, 0),
+         bf2_cat_gt0 = ifelse(logbf2 >=0, 1, 0),
+         bf2_cat_gt2 = ifelse(logbf2 >=2, 1, 0),
+         bf2_cat_gt5 = ifelse(logbf2 >=5, 1, 0),
+         bf2_cat_gt10 = ifelse(logbf2 >=10, 1, 0),
+         bf3_cat_gt0 =  ifelse(logbf3 >=0, 1, 0),
+         bf3_cat_gt2 =  ifelse(logbf3 >=2, 1, 0),
+         bf3_cat_gt5 =  ifelse(logbf3 >=5, 1, 0),
+         bf3_cat_gt10 =  ifelse(logbf3 >=10, 1, 0)) %>% 
+  dplyr::select(phyloacc.id, matches("_cat")) %>%
+  pivot_longer(cols = matches("_cat")) %>% 
+  group_by(name) %>% summarise(n = sum(value)) %>% 
+  mutate(tx_lab = ifelse(n < 20, n, NA)) %>% 
+  separate(name, into = c("bf", "cat"), sep = "_cat_gt", remove = F)
+
+score_summary %>% ggplot(aes(x = as.factor(as.numeric(cat)), y = n)) +
+  geom_col() + 
+  geom_text(aes(label = n), vjust = 0, size = 3) +
+  facet_grid(.~bf) + 
+  scale_x_discrete(name = "logBFx >= threshold") +
+  scale_y_continuous(expand = c(0,0,0.05,0)) + theme_m
+
+```
+
+### look at CNEEs: prep
+```{r prep_bf_cat, fig.height=6, fig.width=4}
+score_summary = score %>%
+  mutate(bf1_cat_gt2 = ifelse(logbf1 >=2, 1, 0),
+         bf1_cat_gt5 = ifelse(logbf1 >=5, 1, 0),
+         bf1_cat_gt10 = ifelse(logbf1 >=10, 1, 0),
+         bf2_cat_gt0 = ifelse(logbf2 >=0, 1, 0),
+         bf2_cat_gt2 = ifelse(logbf2 >=2, 1, 0),
+         bf2_cat_gt5 = ifelse(logbf2 >=5, 1, 0),
+         bf3_cat_gt0 =  ifelse(logbf3 >=0, 1, 0),
+         bf3_cat_gt5 =  ifelse(logbf3 >=5, 1, 0),
+         bf3_cat_gt10 =  ifelse(logbf3 >=10, 1, 0)) %>% 
+  dplyr::select(phyloacc.id, matches("_cat")) 
+```
+
+### look at CNEEs: logbf1 > 10
+```{r logbf1_gt_10, fig.height=7, fig.width=10 }
+input = score_summary %>% filter(bf1_cat_gt10 == 1)
+n_distinct(input$phyloacc.id)
+cneeIDs = sample(input$phyloacc.id, 10) # randomly sample n CNEEs to look, each row 3 in
+pl = lapply(cneeIDs, FUN = plot_single_cnee, target_species = targets, show_legend = FALSE, show_all_tips = FALSE)
+cowplot::plot_grid(plotlist = pl, ncol = 5)
+```
+
+### look at CNEEs: 5 < logbf1 < 10: some unspecific but fairly ok
+```{r logbf1_5_to_10, fig.height=7, fig.width=10 }
+input = score %>% filter(logbf1>= 5 & logbf1 <10)
+n_distinct(input$phyloacc.id)
+cneeIDs = sample(input$phyloacc.id, 10)
+pl = lapply(cneeIDs, FUN = plot_single_cnee, target_species = targets, show_legend = FALSE, show_all_tips = FALSE)
+cowplot::plot_grid(plotlist = pl, ncol = 5)
+```
+
+### look at CNEEs: 5 < logbf1 < 10 & logbf2 > 0: 
+```{r logbf1_5_to_10_BF2, fig.height=7, fig.width=10 }
+input = score %>% filter(logbf1>= 5 & logbf1 <10 & logbf2 > 0 )
+n_distinct(input$phyloacc.id)
+cneeIDs = sample(input$phyloacc.id, 10)
+pl = lapply(cneeIDs, FUN = plot_single_cnee, target_species = targets, show_legend = FALSE, show_all_tips = FALSE)
+cowplot::plot_grid(plotlist = pl, ncol = 5)
+```
+
+## calculate expectation
+### prep: whole tree
+```{r calculate_expectation_whole_phylogeny}
+
+tree_tb = tree %>% as_tibble()
+
+get_1deg_parrent = function(branch){
+  l = treeio::parent(tree_tb, branch)$label
+  out = l
+  return(out)
+}
+
+postZpl = postZp %>% 
+  pivot_longer(cols = 2:last_col(), names_to = 'label', values_to = 'pp') %>% 
+  left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id"))
+
+```
+
+### define clades and function
+```{r define_clades}
+# def nectar clades ====
+#### hummingbird ====
+hummingbird_tips = c("HLcalAnn5", "HLfloFus1", "HLphaSup1")
+all_parents = unlist(sapply(hummingbird_tips, get_1deg_parrent))
+hummingbird_input = unique(c(hummingbird_tips, all_parents)) # 5
+
+#### parrot tips ====
+parrot_tips = c("HLlorGal1", "HLtriMol2", "HLaraSol1", "HLamaAes1")
+all_parents = unlist(sapply(parrot_tips, get_1deg_parrent))
+all_parents2 = unlist(sapply(all_parents, get_1deg_parrent))
+parrot_input = unique(c(parrot_tips, all_parents, all_parents2)) # 7
+
+#### honeyeater tips ====
+honeyeater_tips = c("HLlicPen1", "HLlicMelCas1", "HLphyNov1", "HLgraPic1")
+all_parents = unlist(sapply(honeyeater_tips, get_1deg_parrent))
+# pardalote_tips = c("HLparPun1")
+# honeyeater_pardalote_input = unique(c(honeyeater_tips, all_parents, pardalote_tips)) # 8
+honeyeater_input = unique(c(honeyeater_tips, all_parents)) # 7
+
+#### sunbird+flowerpecker tips ====
+sunbird_tips = c("HLlepAsp1", "HLdicExi1")
+all_parents = unlist(sapply(sunbird_tips, get_1deg_parrent))
+sunbird_input = unique(c(sunbird_tips, all_parents)) # 5 >2024:3
+
+# def non-nectar clades ====
+#### swift ====
+swift_tips = c("HLapuApu1", "HLchaPel1")
+all_parents = unlist(sapply(swift_tips, get_1deg_parrent))
+swift_input = unique(c(swift_tips, all_parents)) # 3
+#### falcon tips (commented just becasue it's already generated above) ====
+falcon_tips = c("HLfalTin1", "falPer1", "falChe1")
+all_parents = unlist(sapply(falcon_tips, get_1deg_parrent))
+falcon_input = unique(c(falcon_tips, all_parents)) # 5
+#### lyrebird ====
+lyrebird_tips = c("HLatrCla1", "HLmenNov1")
+all_parents = unlist(sapply(lyrebird_tips, get_1deg_parrent))
+lyrebird_input = unique(c(lyrebird_tips, all_parents)) # 3
+#### passeri -1 ====
+passeri1_tips = c("HLtaeGut4", "ficAlb2", "pseHum1")
+all_parents = unlist(sapply(passeri1_tips, get_1deg_parrent))
+all_parents2 = unlist(sapply(all_parents, get_1deg_parrent))
+passeri1_input = unique(c(passeri1_tips, all_parents, all_parents2)) # 8
+
+# def branch class ====
+core_nectars = unique(c(hummingbird_input, parrot_input, 
+                        honeyeater_input, sunbird_input)) # 25>24>2024:22
+reversals = c("HLnymHol2", "HLmalCya1", "HLmalEle1") # 4>3 (20220728 we decide to move "HLempTra1" to ambigous)
+ambiguous = unique(c("HLstrHab1", "HLamaAes1-HLstrHab1", "HLamaAes1-HLnymHol2", 
+                     "HLparPun1", # pardalote 20220801
+              "HLfurRuf1", 
+              "HLcliRuf1",
+              "HLempTra1", # 0728 addition
+              # "HLfurRuf1-HLempTra1", ## Tim thinks it should be in core non-nectar
+              "HLmalCya1-HLmalEle1", 
+              "HLacaPus1", "HLacaPus1-HLparPun1", "HLlicMelCas1-HLacaPus1",
+              "HLparMaj1", "HLmelMel1", "HLserCan1", "HLmelMel1-HLserCan1"))# 13 >14>0728>15
+# core_nonnectars = setdiff(tree_tb$label, c(core_nectars, reversals, ambiguous)) # 47
+core_nonnectars = unique(c(passeri1_input, lyrebird_input, falcon_input, swift_input)) #19; 20230720 corrected
+
+# sum up the exp (change in pp from the previous branch) of the given branches
+clade_specific = function(clade, name_of_clade, thre, plotSingleCNEEs = TRUE){
+  # clade = honeyeater_input
+  # name_of_clade = 'honeyeaters'
+  
+  print(name_of_clade)
+  
+  exp_sel = postZpl %>% 
+    # filter(`Locus ID` == '2630-15') %>%
+    filter(label %in% clade) %>% 
+    group_by(`Locus ID`) %>% 
+    # 20240319: i think sum up now is misleading, we actually want 'at least 1 branch > pp_threshol'
+    # summarise(exp = sum(pp)) %>%
+    summarise(exp = sum(pp>thre)) %>% filter(exp >=1 ) %>% 
+    left_join(score %>% dplyr::select(phyloacc.id, matches('logBF')), 
+              by = c("Locus ID" = "phyloacc.id")) %>%
+    arrange(desc(exp))
+  
+  sum(exp_sel$exp>0.9) # 32279 > 20653
+  sum(exp_sel$exp>0.95) # 26668 > 17396
+  sum(exp_sel$exp>1) # 17065 > 13929
+  
+  # thre = 1
+  nbins = 25
+  
+  # clade
+  y_max = 300000
+  n = sum(exp_sel$exp >= thre, na.rm = T); n
+  p_exp_hum = ggplot(exp_sel, aes(x = exp)) +
+    geom_histogram(bins = nbins, fill = 'lightblue') +
+    scale_x_continuous(expand = c(0,0,0.05,0)) +
+    scale_y_continuous(expand = c(0,0,0.05,0), limits = c(0, y_max)) +
+    ggtitle(paste0(name_of_clade, " (", n_distinct(clade), ")\n", 
+                   "Num (expectation >= ", thre, "): ", n)) +
+    theme_m; p_exp_hum
+  
+  # clade > 0.95
+  y_max2 = 15000
+  n = sum(exp_sel$exp >= thre, na.rm = T); n
+  p_exp_hum95 = ggplot(exp_sel %>% filter(exp >= thre), aes(x = exp)) +
+    geom_histogram(bins = nbins, fill = 'lightblue') +
+    scale_x_continuous(expand = c(0,0,0.05,0)) +
+    scale_y_continuous(expand = c(0,0,0.05,0), limits = c(0, y_max2)) +
+    ggtitle(paste0(name_of_clade, " (", n_distinct(clade), ")\n", 
+                   "Num (expectation >= ", thre, "): ", n)) +
+    theme_m; p_exp_hum95
+  
+  # logbf3 vs exp hex
+  nbins = 25
+  corv = signif(cor(exp_sel$exp, exp_sel$logbf3, "complete.obs"), 2); corv # 0.29
+  p_hum_bf3_hex = ggplot(exp_sel, aes(x = exp, y = logbf3)) + # , color = interest
+    geom_hex(bins = nbins) + 
+    scale_fill_distiller("Blues", direction = 1) +
+    scale_x_continuous(expand = c(0,0,0.05,0)) +
+    scale_y_continuous(expand = c(0,0,0.05,0)) +
+    ggtitle(name_of_clade) +
+    theme_m + theme(legend.position = 'right'); p_hum_bf3_hex
+  
+  if(plotSingleCNEEs){ 
+    # plot single cnee - top5 exp
+    ind = 1:5
+    tmp_cnee = exp_sel$`Locus ID`[ind]
+    tmp_mean = exp_sel$exp[ind]
+    input_titles = paste0(", exp_mean=", signif(tmp_mean, 2))
+    
+    ind_in_score = sapply(tmp_cnee, function(s){which(score$phyloacc.id == s)})
+    if(!identical(tmp_cnee,  score$phyloacc.id[ind_in_score])){
+      print('checking cnee ordering [plot single cnee')}
+    
+    Ncol = 5
+    Nrow = ceiling(length(ind_in_score)/Ncol)
+    }
+  
+  return(list(exp_sel, p_exp_hum, p_exp_hum95, p_hum_bf3_hex))
+}
+```
+
+### expectation output: nectar and non-nectar: here
+```{r cal_nectar}
+# cal nectar clades (per clade) ====
+all_input = list(hummingbird_input, parrot_input,
+                 honeyeater_input, sunbird_input)
+all_input_names = list("hummingbirds", "parrots",
+                       "honeyeaters", "sunbirds")
+thre_in = 0.9
+bf3_cutoff = 10
+cladeouts = mapply(clade_specific,
+                   clade = all_input,
+                   name_of_clade = all_input_names,
+                   thre = thre_in,
+                   plotSingleCNEEs = FALSE,
+                   SIMPLIFY = F)
+## get cal into a table
+Ncol = length(all_input)
+nectars_clades_out_tb = lapply(1:Ncol, function(i){
+  cladeouts[[i]][[1]] %>% mutate('ori' = all_input_names[[i]] )
+}) %>% bind_rows() 
+dim(nectars_clades_out_tb) # 1451508       6
+
+# ggplot(nectars_clades_out_tb)+
+#   geom_histogram(aes(x = exp)) +
+#   facet_grid(.~ori)
+
+# cal core non-nectar clades (per clade) ====
+all_input_con = list(swift_input, falcon_input, lyrebird_input, passeri1_input)
+all_input_con_names = list('swifts', 'falcons', 'lyrebirds', 'passerides')
+thre_in = 0.9
+bf3_cutoff = 10
+cladeouts_con = mapply(clade_specific,
+                   clade = all_input_con,
+                   name_of_clade = all_input_con_names,
+                   thre = thre_in,
+                   plotSingleCNEEs = FALSE,
+                   SIMPLIFY = F)
+## get cal into a table
+Ncol = length(all_input_con)
+nonnectars_clades_out_tb = lapply(1:Ncol, function(i){
+  cladeouts_con[[i]][[1]] %>% mutate('ori' = all_input_con_names[[i]] )
+}) %>% bind_rows() 
+dim(nonnectars_clades_out_tb) # 1451508       6
+
+
+path = paste0(project_path, "exp_all_nectar_correctExp_", Sys.Date(), ".csv")
+write_csv(nectars_clades_out_tb, file = path, na = "NA")
+
+path = paste0(project_path, "exp_all_control_correctExp_", Sys.Date(), ".csv")
+write_csv(nonnectars_clades_out_tb, file = path, na = "NA")
+```
+
+## loose set
+```{r}
+all_branches = c(tree$tip.label, tree$node.label)
+background_branches = setdiff(all_branches, ambiguous) # 72
+# core_nectars
+# core_nonnectars
+
+thre_in = 0.9
+bf1_cutoff = 10
+
+nonnectar_tmp0 = nonnectars_clades_out_tb %>% 
+  filter(logbf1 > bf1_cutoff) 
+
+nonnectar_pp_count = postZpl %>% 
+    filter(`Locus ID` %in% nonnectar_tmp0$`Locus ID`) %>%
+    filter(label %in% core_nonnectars) %>% 
+    group_by(`Locus ID`) %>% 
+    summarise(count_nonnect = sum(pp>thre_in)) 
+dim(nonnectar_pp_count)
+
+bg_pp_count = postZpl %>% 
+    filter(`Locus ID` %in% nonnectar_tmp0$`Locus ID`) %>%
+    filter(label %in% background_branches) %>% 
+    group_by(`Locus ID`) %>% 
+    summarise(count_bg = sum(pp>thre_in)) 
+dim(bg_pp_count)
+
+pp_count = nonnectar_pp_count %>% 
+  left_join(bg_pp_count) %>% 
+  mutate(relevance = count_nonnect/count_bg) %>%
+    left_join(nonnectars_clades_out_tb)
+
+loose_set0 = pp_count %>% 
+  filter(relevance > 0.5) %>%
+    arrange(desc(relevance))
+
+core_nonnectar_clade_order = c('swifts', 'falcons', 'lyrebirds', 'passerides')
+core_nonnectar_clade_order_union = c("union", core_nonnectar_clade_order)
+
+loose_set = lapply(1:4, function(i){
+  # i=1
+  nonnectar_tmp = loose_set0 %>% 
+    filter(ori == core_nonnectar_clade_order[i]) 
+  return(nonnectar_tmp)
+}) %>% bind_rows()
+
+n_union = n_distinct(loose_set$`Locus ID`) # 3297 <- union
+
+p_loose = loose_set %>% 
+  group_by(ori) %>% 
+  summarise(count = n_distinct(`Locus ID`)) %>%
+  bind_rows(tibble(ori = "union", count = n_union)) %>% 
+  mutate(ori = fct_relevel(ori, core_nonnectar_clade_order_union)) %>% 
+  ggplot(aes(x = ori, y = count)) +
+  geom_col(fill = 'lightblue') + 
+  geom_text(aes(label = count), vjust = 0, size = 3) +
+  scale_y_continuous(expand = c(0,0,0.05, 0)) + theme_m +
+  theme(axis.title.x = element_blank()); p_loose
+```
+
+## narrow set 
+```{r}
+bf2_cutoff = 3
+narrow_set3 = loose_set %>% filter(logbf2 > bf2_cutoff)
+
+n_union = n_distinct(narrow_set3$`Locus ID`) # 3297 <- union
+
+p_narrow3 = narrow_set3 %>% 
+  group_by(ori) %>% 
+  summarise(count = n_distinct(`Locus ID`)) %>%
+  bind_rows(tibble(ori = "union", count = n_union)) %>% 
+  mutate(ori = fct_relevel(ori, core_nonnectar_clade_order_union)) %>% 
+  ggplot(aes(x = ori, y = count)) +
+  geom_col(fill = 'lightblue') + 
+  geom_text(aes(label = count), vjust = 0, size = 3) +
+  scale_y_continuous(expand = c(0,0,0.05, 0)) + theme_m +
+  theme(axis.title.x = element_blank()); p_narrow3
+```
+
+### plot rel
+```{r, eval=FALSE}
+plot(pp_count$logbf2, pp_count$relevance)
+plot(pp_count$logbf2, pp_count$relevance, xlim = c(0, 20))
+cut_interval()
+
+pp_count %>% 
+  mutate(agegroup = cut_interval(logbf2, 15)) %>% 
+  ggplot(aes(x = agegroup, y = relevance)) + 
+  geom_violin()
+
+pp_count %>% filter(logbf2>0) %>% 
+  mutate(agegroup = cut_interval(logbf2, 15)) %>% 
+  ggplot(aes(x = agegroup, y = relevance)) + 
+  geom_violin()
+
+narrow_set3 %>% 
+  mutate(agegroup = cut_interval(relevance, 15)) %>% 
+  ggplot(aes(x = agegroup, y = logbf2)) + 
+  geom_violin()
+
+plot(narrow_set2$logbf2, narrow_set2$relevance)
+plot(narrow_set3$logbf2, narrow_set3$relevance)
+
+cneeIDs = c('2006-85', '192-89', '3606-78', '3439-69', '1366-13')
+pl = lapply(cneeIDs, FUN = plot_single_cnee, target_species = targets, show_legend = FALSE, show_all_tips = FALSE)
+cowplot::plot_grid(plotlist = pl, ncol = length(cneeIDs))
+```
+
+##  output nectar-acc bed
+### loose 
+```{r output_NectarSpecificSet}
+
+RUN = "ControlLoose" # remember to change input
+lapply(tmp_sets, function(s){
+  # s = "hummingbirds"
+  input = loose_set
+  tmp_set_cnee = input %>% filter(ori == s) %>%
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+  bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  
+  # t = gsub("\\+", "_", s)
+  path = paste0(out_path, RUN, "_", s, ".bed")
+  write_tsv(bed, path, col_names = F)
+})
+
+path = paste0(out_path, RUN, "_", "union", ".bed")
+tmp_set_cnee = loose_set %>% 
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+write_tsv(bed, path, col_names = F)
+
+# convergent
+specific_set_con = loose_set %>% 
+  group_by(`Locus ID`) %>% 
+  mutate(n_clades = n_distinct(ori))
+max_nway = max(unique(specific_set_con$n_clades))
+
+lapply(2:max_nway, function(i){
+  input = specific_set_con
+  tmp_set_cnee = input %>% filter(n_clades == i) %>%
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+  bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  
+  # t = gsub("\\+", "_", s)
+  path = paste0(out_path, RUN, "_congvergent", i, "way.bed")
+  write_tsv(bed, path, col_names = F)
+})
+
+# convergent >=2 
+tmp_set_cnee = specific_set_con %>% filter(n_clades >= 2) %>%
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  
+path = paste0(out_path, RUN, "_congvergent_gteq2way.bed")
+write_tsv(bed, path, col_names = F)
+
+# convergent >=3
+tmp_set_cnee = specific_set_con %>% filter(n_clades >= 3) %>%
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  
+path = paste0(out_path, RUN, "_congvergent_gteq3way.bed")
+write_tsv(bed, path, col_names = F)
+  
+# full specific
+path = paste0(project_path, RUN, "_full_output_", Sys.Date(), "_correctExp.csv")
+write_csv(loose_set, file = path, na = "NA")
+
+# convergent - gene lv
+path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/cnee_gene_assignment_basalPlusExtension_proteincoding_allcnees.bed"
+allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
+      mutate(gene = gsub("LOC107051846", "IRS1", gene),
+           gene = gsub("LOC107055431", "NEDD4L", gene),
+           gene = gsub("gga-mir-6690", "CTSB", gene),
+           gene = gsub("gga-mir-12216", "B2M", gene),
+           gene = gsub("gga-mir-12230", "SLC27A4", gene),
+           gene = gsub("^Ii$", "CD74", gene)) 
+
+
+control_path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/great/"
+target_file = list.files(paste0(control_path, "/overlap/ControlLoose/"), 
+                         ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+
+acccnees_100kb_withcnees0_looseCon = lapply(target_file, function(s){
+  # s = target_file[1]
+  tmp_name = basename(s)
+  tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_ControlLoose_", "", tmp_name)
+  tmp_name = gsub(".bed", "", tmp_name)
+  print(paste0("current: ", tmp_name))
+  x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
+    dplyr::select(gene, id) %>%
+    bind_cols('group' = tmp_name) 
+}) %>% bind_rows()  %>% 
+  # mutate(group = gsub("_2", "", group)) %>% 
+  mutate(group = gsub("sunbirds_flowerpecker", "sunbirds", group)) %>% 
+  mutate(gene = gsub("LOC107051846", "IRS1", gene),
+         gene = gsub("LOC107055431", "NEDD4L", gene),
+         gene = gsub("gga-mir-6690", "CTSB", gene),
+         gene = gsub("gga-mir-12216", "B2M", gene),
+         gene = gsub("gga-mir-12230", "SLC27A4", gene),
+         gene = gsub("^Ii$", "CD74", gene))
+head(acccnees_100kb_withcnees0_looseCon)
+
+acccnees_100kb_withcnees_looseCon = acccnees_100kb_withcnees0_looseCon %>% 
+  mutate(set = paste0("acc_", group), 
+         val = 1,
+         analysis = "acc") %>% 
+  dplyr::select(set, gene, val, analysis, group) %>% 
+  distinct()
+dim(acccnees_100kb_withcnees_looseCon) # 11322    5
+head(acccnees_100kb_withcnees_looseCon)
+# set                gene     val analysis group    
+# acc_2wayconvergent KLHL1      1 acc      congvergent2way
+# acc_2wayconvergent PLXNA4     1 acc      congvergent2way
+unique(acccnees_100kb_withcnees_looseCon$group)
+
+## keep only sets of 4 cloades
+acccnees_100kb_withcnees0_looseCon_sel = acccnees_100kb_withcnees0_looseCon %>%
+  filter(group %in% c("swifts", "falcons", "lyrebirds", "passerides" )) %>% 
+  dplyr::rename(clade = group)
+
+## make convergent table (gene lv)
+genelv_conv_b = acccnees_100kb_withcnees0_looseCon_sel %>% 
+  group_by(gene) %>% 
+  mutate(n_clade = length(unique(clade))) %>% 
+  dplyr::select(gene, n_clade) %>% 
+  distinct()
+table(genelv_conv_b$n_clade)
+
+## at least 2 clades
+genelv_conv_b_gteq2 = genelv_conv_b %>% filter(n_clade>=2)
+n_distinct(genelv_conv_b_gteq2$gene) # 3681
+
+path = paste0(out_path, RUN, "_congvergent_genelv_gteq2way_genelist.tsv")
+write_tsv(genelv_conv_b_gteq2, path)
+
+### get cnees
+genelv_conv_b_gteq2_cnee = genelv_conv_b_gteq2 %>% 
+  left_join(allcnees) %>% 
+  # keep only cnees in the nectar set
+  filter(id %in% acccnees_100kb_withcnees0_looseCon_sel$id)
+n_distinct(genelv_conv_b_gteq2_cnee$id) # 10991
+
+tmp_set_cnee = genelv_conv_b_gteq2_cnee %>%
+    dplyr::select(id) %>% distinct() %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+path = paste0(out_path, RUN, "_congvergent_genelv_gteq2way.bed")
+write_tsv(bed, path, col_names = F)
+
+## at least 3 clades
+genelv_conv_b_gteq2 = genelv_conv_b %>% filter(n_clade>=3)
+n_distinct(genelv_conv_b_gteq2$gene) # 3681
+
+path = paste0(out_path, RUN, "_congvergent_genelv_gteq3way_genelist.tsv")
+write_tsv(genelv_conv_b_gteq2, path)
+
+### get cnees
+genelv_conv_b_gteq2_cnee = genelv_conv_b_gteq2 %>% 
+  left_join(allcnees) %>% 
+  # keep only cnees in the nectar set
+  filter(id %in% acccnees_100kb_withcnees0_looseCon_sel$id)
+n_distinct(genelv_conv_b_gteq2_cnee$id) # 10991
+
+tmp_set_cnee = genelv_conv_b_gteq2_cnee %>%
+    dplyr::select(id) %>% distinct() %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+path = paste0(out_path, RUN, "_congvergent_genelv_gteq3way.bed")
+write_tsv(bed, path, col_names = F)
+
+## convergent exactly n clade
+max_nway = max(unique(specific_set_con$n_clades))
+
+lapply(2:max_nway, function(i){
+  input = genelv_conv_b %>% filter(n_clade ==i) 
+  path = paste0(out_path, RUN, "_congvergent_genelv_", i, "way_genelist.tsv")
+  write_tsv(input, path)
+
+  ### get cnees
+  input_cnee = input %>% 
+    left_join(allcnees) %>% 
+    # keep only cnees in the nectar set
+    filter(id %in% acccnees_100kb_withcnees0_looseCon_sel$id)
+  n_distinct(input_cnee$id) # 10991
+  
+  tmp_set_cnee = input_cnee %>%
+      dplyr::select(id) %>% distinct() %>% pull()
+  bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  path = paste0(out_path, RUN, "_congvergent_genelv_", i, "way.bed")
+  write_tsv(bed, path, col_names = F)
+})
+
+```
+
+
+### narrow logBF > 3
+```{r output_NectarSpecificSet}
+
+RUN = "ControlNarrowBF2_gt3" # remember to change input
+lapply(tmp_sets, function(s){
+  # s = "hummingbirds"
+  input = narrow_set3
+  tmp_set_cnee = input %>% filter(ori == s) %>%
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+  bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  
+  # t = gsub("\\+", "_", s)
+  path = paste0(out_path, RUN, "_", s, ".bed")
+  write_tsv(bed, path, col_names = F)
+})
+
+path = paste0(out_path, RUN, "_", "union", ".bed")
+tmp_set_cnee = narrow_set3 %>% 
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+write_tsv(bed, path, col_names = F)
+
+# convergent
+specific_set_con = narrow_set3 %>% 
+  group_by(`Locus ID`) %>% 
+  mutate(n_clades = n_distinct(ori))
+max_nway = max(unique(specific_set_con$n_clades))
+
+lapply(2:max_nway, function(i){
+  input = specific_set_con
+  tmp_set_cnee = input %>% filter(n_clades == i) %>%
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+  bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  
+  # t = gsub("\\+", "_", s)
+  path = paste0(out_path, RUN, "_congvergent", i, "way.bed")
+  write_tsv(bed, path, col_names = F)
+})
+
+# convergent >=2 
+tmp_set_cnee = specific_set_con %>% filter(n_clades >= 2) %>%
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  
+path = paste0(out_path, RUN, "_congvergent_gteq2way.bed")
+write_tsv(bed, path, col_names = F)
+
+# convergent >=3
+tmp_set_cnee = specific_set_con %>% filter(n_clades >= 3) %>%
+    left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
+    dplyr::select(id) %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  
+path = paste0(out_path, RUN, "_congvergent_gteq3way.bed")
+write_tsv(bed, path, col_names = F)
+  
+# full specific
+path = paste0(project_path, RUN, "_full_output_", Sys.Date(), "_correctExp.csv")
+write_csv(narrow_set3, file = path, na = "NA")
+
+# convergent - gene lv
+path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/cnee_gene_assignment_basalPlusExtension_proteincoding_allcnees.bed"
+allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
+      mutate(gene = gsub("LOC107051846", "IRS1", gene),
+           gene = gsub("LOC107055431", "NEDD4L", gene),
+           gene = gsub("gga-mir-6690", "CTSB", gene),
+           gene = gsub("gga-mir-12216", "B2M", gene),
+           gene = gsub("gga-mir-12230", "SLC27A4", gene),
+           gene = gsub("^Ii$", "CD74", gene)) 
+
+control_path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/great/overlap/ControlNarrowBF2_gt3/"
+target_file = list.files(control_path, ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+
+acccnees_100kb_withcnees0_narrow3Con = lapply(target_file, function(s){
+  # s = target_file[1]
+  tmp_name = basename(s)
+  tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_ControlNarrowBF2_gt3_", "", tmp_name)
+  tmp_name = gsub(".bed", "", tmp_name)
+  print(paste0("current: ", tmp_name))
+  x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
+    dplyr::select(gene, id) %>%
+    bind_cols('group' = tmp_name) 
+}) %>% bind_rows()  %>% 
+  # mutate(group = gsub("_2", "", group)) %>% 
+  mutate(group = gsub("sunbirds_flowerpecker", "sunbirds", group)) %>% 
+  mutate(gene = gsub("LOC107051846", "IRS1", gene),
+         gene = gsub("LOC107055431", "NEDD4L", gene),
+         gene = gsub("gga-mir-6690", "CTSB", gene),
+         gene = gsub("gga-mir-12216", "B2M", gene),
+         gene = gsub("gga-mir-12230", "SLC27A4", gene),
+         gene = gsub("^Ii$", "CD74", gene))
+head(acccnees_100kb_withcnees0_narrow3Con)
+
+acccnees_100kb_withcnees_narrow3Con = acccnees_100kb_withcnees0_narrow3Con %>% 
+  mutate(set = paste0("acc_", group), 
+         val = 1,
+         analysis = "acc") %>% 
+  dplyr::select(set, gene, val, analysis, group) %>% 
+  distinct()
+dim(acccnees_100kb_withcnees_narrow3Con) # 5533    5
+head(acccnees_100kb_withcnees_narrow3Con)
+# set                gene     val analysis group    
+# acc_2wayconvergent KLHL1      1 acc      congvergent2way
+# acc_2wayconvergent PLXNA4     1 acc      congvergent2way
+unique(acccnees_100kb_withcnees_narrow3Con$group)
+
+## keep only sets of 4 cloades
+acccnees_100kb_withcnees0_narrow3Con_sel = acccnees_100kb_withcnees0_narrow3Con %>%
+  filter(group %in% c("swifts", "falcons", "lyrebirds", "passerides" )) %>% 
+  dplyr::rename(clade = group)
+
+## make convergent table (gene lv)
+genelv_conv_b = acccnees_100kb_withcnees0_narrow3Con_sel %>% 
+  group_by(gene) %>% 
+  mutate(n_clade = length(unique(clade))) %>% 
+  dplyr::select(gene, n_clade) %>% 
+  distinct()
+table(genelv_conv_b$n_clade)
+
+## at least 2 clades
+genelv_conv_b_gteq2 = genelv_conv_b %>% filter(n_clade>=2)
+n_distinct(genelv_conv_b_gteq2$gene) # 718
+
+path = paste0(out_path, RUN, "_congvergent_genelv_gteq2way_genelist.tsv")
+write_tsv(genelv_conv_b_gteq2, path)
+
+### get cnees
+genelv_conv_b_gteq2_cnee = genelv_conv_b_gteq2 %>% 
+  left_join(allcnees) %>% 
+  # keep only cnees in the nectar set
+  filter(id %in% acccnees_100kb_withcnees0_narrow3Con_sel$id)
+n_distinct(genelv_conv_b_gteq2_cnee$id) # 846
+
+tmp_set_cnee = genelv_conv_b_gteq2_cnee %>%
+    dplyr::select(id) %>% distinct() %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+path = paste0(out_path, RUN, "_congvergent_genelv_gteq2way.bed")
+write_tsv(bed, path, col_names = F)
+
+## at least 3 clades
+genelv_conv_b_gteq2 = genelv_conv_b %>% filter(n_clade>=3)
+n_distinct(genelv_conv_b_gteq2$gene) # 718
+
+path = paste0(out_path, RUN, "_congvergent_genelv_gteq3way_genelist.tsv")
+write_tsv(genelv_conv_b_gteq2, path)
+
+### get cnees
+genelv_conv_b_gteq2_cnee = genelv_conv_b_gteq2 %>% 
+  left_join(allcnees) %>% 
+  # keep only cnees in the nectar set
+  filter(id %in% acccnees_100kb_withcnees0_narrow3Con_sel$id)
+n_distinct(genelv_conv_b_gteq2_cnee$id) # 846
+
+tmp_set_cnee = genelv_conv_b_gteq2_cnee %>%
+    dplyr::select(id) %>% distinct() %>% pull()
+bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+path = paste0(out_path, RUN, "_congvergent_genelv_gteq3way.bed")
+write_tsv(bed, path, col_names = F)
+
+
+## convergent exactly n clade
+max_nway = max(unique(specific_set_con$n_clades))
+
+lapply(2:max_nway, function(i){
+  input = genelv_conv_b %>% filter(n_clade ==i) 
+  path = paste0(out_path, RUN, "_congvergent_genelv_", i, "way_genelist.tsv")
+  write_tsv(input, path)
+
+  ### get cnees
+  input_cnee = input %>% 
+    left_join(allcnees) %>% 
+    # keep only cnees in the nectar set
+    filter(id %in% acccnees_100kb_withcnees0_narrow3Con_sel$id)
+  n_distinct(input_cnee$id) # 2:882;3:846;4:969
+  
+  tmp_set_cnee = input_cnee %>%
+      dplyr::select(id) %>% distinct() %>% pull()
+  bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
+  path = paste0(out_path, RUN, "_congvergent_genelv_", i, "way.bed")
+  write_tsv(bed, path, col_names = F)
+})
+
+
+```
+
