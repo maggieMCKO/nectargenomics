@@ -631,10 +631,10 @@ nonnectars_clades_out_tb = lapply(1:Ncol, function(i){
 }) %>% bind_rows() 
 dim(nonnectars_clades_out_tb) # 1451508       6
 
-path = paste0(project_path, "exp_all_nectar_correctExp_", Sys.Date(), ".csv")
+path = paste0(project_path, "exp_all_nectar_correctExp_v7_", Sys.Date(), ".csv")
 write_csv(nectars_clades_out_tb, file = path, na = "NA")
 
-path = paste0(project_path, "exp_all_control_correctExp_", Sys.Date(), ".csv")
+path = paste0(project_path, "exp_all_control_correctExp_v7_", Sys.Date(), ".csv")
 write_csv(nonnectars_clades_out_tb, file = path, na = "NA")
 ```
 
@@ -797,7 +797,13 @@ cowplot::plot_grid(plotlist = p_tmp, ncol = 1)
 
 ## output nectar-acc bed
 ### loose
-```{r output_NectarSpecificSet}
+#### cnee lv
+```{r}
+
+out_path = paste0(project_path, "/acc_cnee_sets_v7/")
+dir.create(out_path)
+
+tmp_sets = c("hummingbirds", "parrots", "honeyeaters", "sunbirds")
 
 RUN = "Loose" # remember to change input
 lapply(tmp_sets, function(s){
@@ -843,7 +849,7 @@ tmp_set_cnee = specific_set_con %>% filter(n_clades >= 2) %>%
     left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
     dplyr::select(id) %>% pull()
 bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
-n_distinct(bed$id) # 1570
+n_distinct(bed$id) # 5862
 
 path = paste0(out_path, RUN, "_congvergent_gteq2way.bed")
 write_tsv(bed, path, col_names = F)
@@ -853,7 +859,7 @@ tmp_set_cnee = specific_set_con %>% filter(n_clades >= 3) %>%
     left_join(score_ids_sel, by = c("Locus ID" = "phyloacc.id")) %>%
     dplyr::select(id) %>% pull()
 bed = ggal_final_cnees %>% filter(id %in% tmp_set_cnee)
-n_distinct(bed$id) # 495
+n_distinct(bed$id) # 1990
   
 path = paste0(out_path, RUN, "_congvergent_gteq3way.bed")
 write_tsv(bed, path, col_names = F)
@@ -861,6 +867,11 @@ write_tsv(bed, path, col_names = F)
 # full specific
 path = paste0(project_path, RUN, "_full_output_", Sys.Date(), "_correctExp.csv")
 write_csv(loose_set, file = path, na = "NA")
+
+```
+
+#### gene lv
+```{r}
 
 # convergent - gene lv
 path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/cnee_gene_assignment_basalPlusExtension_proteincoding_allcnees.bed"
@@ -873,13 +884,13 @@ allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "st
            gene = gsub("^Ii$", "CD74", gene)) 
 
 path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/Loose/"
-target_file = list.files(path, ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+target_file = list.files(path, ".*_basalPlusExtension_\\w+_v72.bed", full.names = T); target_file # great default assign rule
 
 acccnees_100kb_withcnees0_loose = lapply(target_file, function(s){
   # s = target_file[1]
   tmp_name = basename(s)
   tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_Loose_", "", tmp_name)
-  tmp_name = gsub(".bed", "", tmp_name)
+  tmp_name = gsub("_v72.bed", "", tmp_name)
   print(paste0("current: ", tmp_name))
   x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
     dplyr::select(gene, id) %>%
@@ -901,7 +912,7 @@ acccnees_100kb_withcnees_loose = acccnees_100kb_withcnees0_loose %>%
          analysis = "acc") %>% 
   dplyr::select(set, gene, val, analysis, group) %>% 
   distinct()
-dim(acccnees_100kb_withcnees_loose) # 25585    5
+dim(acccnees_100kb_withcnees_loose) # 27977    5
 head(acccnees_100kb_withcnees_loose)
 # set                gene     val analysis group    
 # acc_2wayconvergent KLHL1      1 acc      congvergent2way
@@ -982,8 +993,8 @@ lapply(2:max_nway, function(i){
   path = paste0(out_path, RUN, "_congvergent_genelv_", i, "way.bed")
   write_tsv(bed, path, col_names = F)
 })
-
 ```
+
 
 ### logBF3 > 10
 ```{r}
@@ -1002,7 +1013,8 @@ write_tsv(bed, path, col_names = F)
 
 
 ### narrow logBF > 3
-```{r output_NectarSpecificSet}
+#### cnee lv
+```{r}
 
 RUN = "NarrowBF2_gt3" # remember to change input
 lapply(tmp_sets, function(s){
@@ -1066,7 +1078,10 @@ write_tsv(bed, path, col_names = F)
 path = paste0(project_path, RUN, "_full_output_", Sys.Date(), "_correctExp.csv")
 write_csv(narrow_set3, file = path, na = "NA")
 
+```
 
+#### gene lv
+```{r}
 # convergent - gene lv
 path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/cnee_gene_assignment_basalPlusExtension_proteincoding_allcnees.bed"
 allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
@@ -1078,13 +1093,13 @@ allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "st
            gene = gsub("^Ii$", "CD74", gene)) 
 
 path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/NarrowBF2_gt3/"
-target_file = list.files(path, ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+target_file = list.files(path, ".*_basalPlusExtension_\\w+_v72.bed", full.names = T); target_file # great default assign rule
 
 acccnees_100kb_withcnees0_narrow3 = lapply(target_file, function(s){
   # s = target_file[1]
   tmp_name = basename(s)
   tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_NarrowBF2_gt3_", "", tmp_name)
-  tmp_name = gsub(".bed", "", tmp_name)
+  tmp_name = gsub("_v72.bed", "", tmp_name)
   print(paste0("current: ", tmp_name))
   x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
     dplyr::select(gene, id) %>%
@@ -1188,9 +1203,7 @@ lapply(2:max_nway, function(i){
   write_tsv(bed, path, col_names = F)
 })
 
-
 ```
-
 
 
 ## output setup
