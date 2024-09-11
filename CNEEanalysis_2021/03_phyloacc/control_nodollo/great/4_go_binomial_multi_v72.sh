@@ -8,10 +8,9 @@
 #SBATCH -J go_binomial_NectarSepcific
 
 
-# wd: /home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great
+# wd: /home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/great
 
 module purge
-# module load rev/11.06 bedtools/2.29.1 GREAT/1.5 
 module load rev/20.12 rev/21.12 bedtools/2.29.1 great/1.5
 
 # GO bed path
@@ -19,17 +18,17 @@ export go_bed_dir="/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc
 export onts=(biological_process molecular_function cellular_component) 
 
 # GREAT sets: 
-export greatsets=(basalPlusExtension_proteincoding ) # twoClosest_proteincoding
+export greatsets=(basalPlusExtension_proteincoding ) 
 
 # Set
-export acc_critera=(Loose NarrowBF2_gt3)
+export acc_critera=( ControlLoose )
 
 # Input ACC
-export output_dir=/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/phyloacc-out-02-07-2024.11-55-54/results/acc_cnee_sets/
-export acc_sets=(union congvergent2way congvergent3way congvergent4way honeyeaters hummingbirds parrots sunbirds congvergent_gteq2way congvergent_genelv_2way)
+export output_dir=/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/phyloacc-out-02-20-2024.01-26-12/results/acc_cnee_sets_v7/
+export acc_sets=(union congvergent2way congvergent3way congvergent4way swifts falcons lyrebirds passerides congvergent_gteq2way congvergent_gteq3way)
 
 # Genome non-gap
-export antigap_bed=galGal6_antigap.bed 
+export antigap_bed=${go_bed_dir}../galGal6_antigap.bed 
 
 operation() {
     term=$1
@@ -104,8 +103,8 @@ do
                 find "$bed_dir" -type f -name "*.bed" | parallel -j+0 operation {} "$greatset" "$acc_set" "$num_cnee" "$ont" "$dir_tmp" "$acc_cri"
 
                 # Concatenate all tmp files to the final output file
-                mkdir -p great_BinomialP_go
-                output_file="great_BinomialP_go/great_BinomialP_go_${ont}_${greatset}_${acc_cri}_${acc_set}.tsv"
+                mkdir -p great_BinomialP_go_v7
+                output_file="great_BinomialP_go_v7/great_BinomialP_go_${ont}_${greatset}_${acc_cri}_${acc_set}.tsv"
                 echo "output: ${output_file}"
                 cat "${dir_tmp}"/*.tmp > "$output_file"
 

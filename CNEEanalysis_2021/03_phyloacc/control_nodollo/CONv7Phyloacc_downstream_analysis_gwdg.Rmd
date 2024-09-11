@@ -636,10 +636,10 @@ nonnectars_clades_out_tb = lapply(1:Ncol, function(i){
 dim(nonnectars_clades_out_tb) # 1451508       6
 
 
-path = paste0(project_path, "exp_all_nectar_correctExp_", Sys.Date(), ".csv")
+path = paste0(project_path, "exp_all_nectar_correctExp_v7_", Sys.Date(), ".csv")
 write_csv(nectars_clades_out_tb, file = path, na = "NA")
 
-path = paste0(project_path, "exp_all_control_correctExp_", Sys.Date(), ".csv")
+path = paste0(project_path, "exp_all_control_correctExp_v7_", Sys.Date(), ".csv")
 write_csv(nonnectars_clades_out_tb, file = path, na = "NA")
 ```
 
@@ -753,7 +753,13 @@ cowplot::plot_grid(plotlist = pl, ncol = length(cneeIDs))
 
 ##  output nectar-acc bed
 ### loose 
-```{r output_NectarSpecificSet}
+#### cnee lv
+```{r}
+
+out_path = paste0(project_path, "/acc_cnee_sets_v7/")
+dir.create(out_path)
+
+tmp_sets = c('swifts', 'falcons', 'lyrebirds', 'passerides')
 
 RUN = "ControlLoose" # remember to change input
 lapply(tmp_sets, function(s){
@@ -815,7 +821,10 @@ write_tsv(bed, path, col_names = F)
 # full specific
 path = paste0(project_path, RUN, "_full_output_", Sys.Date(), "_correctExp.csv")
 write_csv(loose_set, file = path, na = "NA")
+```
 
+#### gene lv
+```{r}
 # convergent - gene lv
 path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/cnee_gene_assignment_basalPlusExtension_proteincoding_allcnees.bed"
 allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
@@ -829,13 +838,13 @@ allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "st
 
 control_path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/great/"
 target_file = list.files(paste0(control_path, "/overlap/ControlLoose/"), 
-                         ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+                         ".*_basalPlusExtension_\\w+_v72.bed", full.names = T); target_file # great default assign rule
 
 acccnees_100kb_withcnees0_looseCon = lapply(target_file, function(s){
   # s = target_file[1]
   tmp_name = basename(s)
   tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_ControlLoose_", "", tmp_name)
-  tmp_name = gsub(".bed", "", tmp_name)
+  tmp_name = gsub("_v72.bed", "", tmp_name)
   print(paste0("current: ", tmp_name))
   x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
     dplyr::select(gene, id) %>%
@@ -943,7 +952,8 @@ lapply(2:max_nway, function(i){
 
 
 ### narrow logBF > 3
-```{r output_NectarSpecificSet}
+#### cnee lv
+```{r}
 
 RUN = "ControlNarrowBF2_gt3" # remember to change input
 lapply(tmp_sets, function(s){
@@ -1005,7 +1015,10 @@ write_tsv(bed, path, col_names = F)
 # full specific
 path = paste0(project_path, RUN, "_full_output_", Sys.Date(), "_correctExp.csv")
 write_csv(narrow_set3, file = path, na = "NA")
+```
 
+#### gene lv
+```{r}
 # convergent - gene lv
 path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/cnee_gene_assignment_basalPlusExtension_proteincoding_allcnees.bed"
 allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
@@ -1017,13 +1030,13 @@ allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "st
            gene = gsub("^Ii$", "CD74", gene)) 
 
 control_path = "/home/mpg08/mko/Nectar/analysis/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/great/overlap/ControlNarrowBF2_gt3/"
-target_file = list.files(control_path, ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+target_file = list.files(control_path, ".*_basalPlusExtension_\\w+_v72.bed", full.names = T); target_file # great default assign rule
 
 acccnees_100kb_withcnees0_narrow3Con = lapply(target_file, function(s){
   # s = target_file[1]
   tmp_name = basename(s)
   tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_ControlNarrowBF2_gt3_", "", tmp_name)
-  tmp_name = gsub(".bed", "", tmp_name)
+  tmp_name = gsub("_v72.bed", "", tmp_name)
   print(paste0("current: ", tmp_name))
   x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
     dplyr::select(gene, id) %>%
@@ -1127,7 +1140,6 @@ lapply(2:max_nway, function(i){
   path = paste0(out_path, RUN, "_congvergent_genelv_", i, "way.bed")
   write_tsv(bed, path, col_names = F)
 })
-
 
 ```
 

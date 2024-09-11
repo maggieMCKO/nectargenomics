@@ -9,7 +9,8 @@ editor_options:
 ```{r, setup=TRUE, include=FALSE}
 
 setwd(paste0(getwd(), '/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/'))
-out_dir = "plotsv7/"
+# out_dir = "plotsv7/"
+out_dir = "plotsv72/"
 dir.create(out_dir)
 
 library(tidyverse)
@@ -191,13 +192,13 @@ get_cneegene_4clades = function(input_acc_criteria){
 #### Loose
 ```{r}
 target_file = list.files(paste0(getwd(), "/overlap/Loose/"), 
-                         ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+                         ".*_basalPlusExtension_\\w+_v72.bed", full.names = T); target_file # great default assign rule
 
 acccnees_100kb_withcnees0_loose = lapply(target_file, function(s){
   # s = target_file[1]
   tmp_name = basename(s)
   tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_Loose_", "", tmp_name)
-  tmp_name = gsub(".bed", "", tmp_name)
+  tmp_name = gsub("_v72.bed", "", tmp_name)
   print(paste0("current: ", tmp_name))
   x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
     dplyr::select(gene, id) %>%
@@ -219,7 +220,7 @@ acccnees_100kb_withcnees_loose = acccnees_100kb_withcnees0_loose %>%
          analysis = "acc") %>% 
   dplyr::select(set, gene, val, analysis, group) %>% 
   distinct()
-dim(acccnees_100kb_withcnees_loose) # 7559    5
+dim(acccnees_100kb_withcnees_loose) # 27977    5
 head(acccnees_100kb_withcnees_loose)
 # set                gene     val analysis group    
 # acc_2wayconvergent KLHL1      1 acc      congvergent2way
@@ -260,7 +261,7 @@ p_loose = acccnees_100kb_withcnees0_loose_selb %>%
 ```
 
 
-#### Narrow BF2_gt3
+#### Narrow BF2_gt3 (skip 20240910)
 ```{r}
 target_file = list.files(paste0(getwd(), "/overlap/NarrowBF2_gt3/"), 
                          ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
@@ -378,13 +379,13 @@ p = cowplot::plot_grid(p_loose, p_narrow3, nrow = 1); p
 control_path = "/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/great/"
 
 target_file = list.files(paste0(control_path, "/overlap/ControlLoose/"), 
-                         ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+                         ".*_basalPlusExtension_\\w+_v72.bed", full.names = T); target_file # great default assign rule
 
 acccnees_100kb_withcnees0_looseCon = lapply(target_file, function(s){
   # s = target_file[1]
   tmp_name = basename(s)
   tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_ControlLoose_", "", tmp_name)
-  tmp_name = gsub(".bed", "", tmp_name)
+  tmp_name = gsub("_v72.bed", "", tmp_name)
   print(paste0("current: ", tmp_name))
   x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
     dplyr::select(gene, id) %>%
@@ -406,7 +407,7 @@ acccnees_100kb_withcnees_looseCon = acccnees_100kb_withcnees0_looseCon %>%
          analysis = "acc") %>% 
   dplyr::select(set, gene, val, analysis, group) %>% 
   distinct()
-dim(acccnees_100kb_withcnees_looseCon) # 15437    5
+dim(acccnees_100kb_withcnees_looseCon) # 12290    5
 head(acccnees_100kb_withcnees_looseCon)
 # set                gene     val analysis group    
 # acc_2wayconvergent KLHL1      1 acc      congvergent2way
@@ -446,7 +447,7 @@ p_looseCon = acccnees_100kb_withcnees0_looseCon_selb %>%
 
 ```
 
-#### Narrow BF2_gt3
+#### Narrow BF2_gt3 (skip 20240910)
 ```{r}
 target_file = list.files(paste0(control_path, "/overlap/ControlNarrowBF2_gt3/"), 
                          ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
@@ -523,7 +524,7 @@ p_narrow3Con = acccnees_100kb_withcnees0_narrow3Con_selb %>%
 ```{r}
 
 # focus on biological process
-all = list.files(paste0(getwd(), "/great_BinomialP_go/"), ".tsv", full.names = T)
+all = list.files(paste0(getwd(), "/great_BinomialP_go_v7/"), ".tsv", full.names = T)
 all2 = all[grepl("biological_process", all)]
 all2 = all2[grepl("Loose", all2)]; all2
 
@@ -554,19 +555,19 @@ unique(out_go2$accset)
 unique(out_go2$greatset)
 
 x = out_go2 %>% group_by(greatset, acc_criteria, accset, ont) %>% 
-  tally(); x # should all 17898 (go pathways); BP: 11763/filtered: 662
+  tally(); x # should all 17898 (go pathways); BP: 11763/filtered: 417
 
 # FDR
 go_sig_padj = out_go2 %>% 
   filter(padj < 0.05) %>% left_join(go_annoC)
-print(n_distinct(go_sig_padj$go_id)) # 2929/filtered:388
+print(n_distinct(go_sig_padj$go_id)) # 2929/filtered:195
 print(unique(go_sig_padj$accset)) 
 
 go_sig_padj_path = go_sig_padj %>% dplyr::select(-gene) %>% distinct() 
 
 go_sig_padj_path_summary = go_sig_padj_path %>% group_by(greatset, acc_criteria, accset, ont) %>% 
   summarise(n = n_distinct(go_id))
-n_distinct(go_sig_padj_path$goTerm) # 2929/filtered:388
+n_distinct(go_sig_padj_path$goTerm) # 2929/filtered:195
 
 # x = go_sig_padj_path %>% filter(accset == "sunbirds")
 ```
@@ -576,7 +577,7 @@ n_distinct(go_sig_padj_path$goTerm) # 2929/filtered:388
 ```{r}
 
 # focus on biological process
-all = list.files(paste0(control_path, "/great_BinomialP_go/"), ".tsv", full.names = T)
+all = list.files(paste0(control_path, "/great_BinomialP_go_v7/"), ".tsv", full.names = T)
 all2 = all[grepl("biological_process", all)]
 all2 = all2[grepl("ControlLoose", all2)]; all2
 
@@ -607,17 +608,17 @@ unique(out_go_con2$accset)
 unique(out_go_con2$greatset)
 
 x = out_go_con2 %>% group_by(greatset, acc_criteria, accset, ont) %>% 
-  tally(); x # should all 17898 (go pathways): 11763 BP/662
+  tally(); x # should all 17898 (go pathways): 11763 BP/417
 
 go_sig_padj_con = out_go_con2 %>% filter(padj < 0.05) %>% left_join(go_annoC)
-print(n_distinct(go_sig_padj_con$go_id)) # 1397/273
+print(n_distinct(go_sig_padj_con$go_id)) # 148
 print(unique(go_sig_padj_con$accset)) #
 
 go_sig_padj_con_path = go_sig_padj_con %>% dplyr::select(-gene) %>% distinct() 
 
 go_sig_padj_con_path_summary = go_sig_padj_con_path %>% group_by(greatset, acc_criteria, accset, ont) %>% 
   summarise(n = n_distinct(go_id))
-n_distinct(go_sig_padj_con_path$goTerm) # 1397/273
+n_distinct(go_sig_padj_con_path$goTerm) # 148
 
 ```
 
@@ -771,25 +772,15 @@ loose_hypo_marked %>%
   tally()
 #   clade                    n
 #   <chr>                <int>
-# 1 congvergent4way          1
-# 2 congvergent_gteq2way    23
-# 3 honeyeaters             54
-# 4 hummingbirds            42
-# 5 parrots                 22
-# 6 sunbirds                26
-# 7 union                   39
+# 1 congvergent_gteq2way    25
+# 2 congvergent_gteq3way    10
+# 3 honeyeaters             38
+# 4 hummingbirds            34
+# 5 parrots                 19
+# 6 sunbirds                27
+# 7 union                   35
 unique(loose_hypo_marked$clade)
 
-# observed gene >=40
-#   clade                    n
-#   <chr>                <int>
-# 1 congvergent4way          1
-# 2 congvergent_gteq2way    23
-# 3 honeyeaters             54
-# 4 hummingbirds            42
-# 5 parrots                 22
-# 6 sunbirds                26
-# 7 union                   39
 
 # look up gene for sig
 x = loose_hypo_marked %>% 
@@ -812,7 +803,7 @@ loose_hypo_onlyoverlap_gteq2 = loose_hypo_marked %>%
   mutate(n_clades = n_distinct(clade)) %>% 
   filter(n_clades >= 2) %>% 
   filter(sig == "*")
-n_distinct(loose_hypo_onlyoverlap_gteq2$go_id) # 53
+n_distinct(loose_hypo_onlyoverlap_gteq2$go_id) # 55
 
 ```
 
@@ -889,12 +880,12 @@ conloose_hypo_marked %>%
   tally()
 #   clade                    n
 #   <chr>                <int>
-# 1 congvergent_gteq2way     7
-# 2 falcons                 19
-# 3 lyrebirds               41
-# 4 passerides              15
-# 5 swifts                  25
-# 6 union                   41
+# 1 congvergent_gteq2way     8
+# 2 falcons                 23
+# 3 lyrebirds               34
+# 4 passerides              11
+# 5 swifts                  19
+# 6 union                   32
 unique(conloose_hypo_marked$clade)
 
 # control >= 2 clades
@@ -904,7 +895,7 @@ conloose_hypo_onlyoverlap_gteq2 = conloose_hypo_marked %>%
   mutate(n_clades = n_distinct(clade)) %>% 
   filter(n_clades >= 2) %>% 
   filter(sig == "*")
-n_distinct(conloose_hypo_onlyoverlap_gteq2$go_id) # 124/37/34
+n_distinct(conloose_hypo_onlyoverlap_gteq2$go_id) # 38
 ```
 
 # 4. GO 
@@ -1973,9 +1964,11 @@ dev.off()
 ###### gene list2
 ```{r}
 
-l = unique(tb$Term)
+# l = unique(tb$Term)
+l = c("metabolic process", "steroid metabolic process", "electron transport chain")
 
 interested = nectar_only_filtered %>% 
+  filter(goTerm %in% l) %>% 
   mutate(go_id2 = gsub("_", ":", go_id)) #%>%
   # filter(go_id2 %in% tb$ID)
   # filter(goTerm %in% l)
@@ -1991,14 +1984,19 @@ pl2 = mapply(plotFunc_path_genelist_go,
              input_acc_criteria = tmp_acc_criteria, 
              tmp_goTerm = l, SIMPLIFY = F)
 
+# p = cowplot::plot_grid(plotlist = pl2, ncol = 1,
+#                        rel_heights = c(1, 2.2, 1.7, 1.2, 1.9, 
+#                                        0.9, 1, 2, 0.8, 1, 
+#                                        1, 0.9, 0.7, 3.9, 1.5,
+#                                        1.4, 1.5, 1.5)); p
+
+
 p = cowplot::plot_grid(plotlist = pl2, ncol = 1,
-                       rel_heights = c(1, 2.2, 1.7, 1.2, 1.9, 
-                                       0.9, 1, 2, 0.8, 1, 
-                                       1, 0.9, 0.7, 3.9, 1.5,
-                                       1.4, 1.5, 1.5)); p
+                       rel_heights = c(2, 1, 1))
 
 graph_path = paste0(out_dir, "GO_", fdr_flag,"_", tmp_acc_criteria, "_", 
-                    paste0(nectar_clade_order, collapse = "_"), "_nocontrol_greathypogeometric_nclades3_genelist_", Sys.Date(), ".pdf")
+                    paste0(nectar_clade_order, collapse = "_"), "_rep_nocontrol_withgene_greathypogeometric_p1_genelist_", 
+                    Sys.Date(), ".pdf")
 pdf(graph_path, width = Width_HalfCol*0.7, height = Width_HalfCol*1.7*length(l), pointsize = AxisTxFontSizeSize, onefile = TRUE)
 p
 dev.off()
@@ -2030,7 +2028,7 @@ nectar_only2 = nectar_only %>%
   mutate(n_clades = n_distinct(clade)) %>% 
   filter(n_clades >= 3) %>% 
   mutate(go_id2 = gsub("_", ":", go_id))
-n_distinct(nectar_only2$go_id) # 4 clades: 0; 3 clades: 5
+n_distinct(nectar_only2$go_id) # 4 clades: 0; 3 clades: 4
 
 # plot
 ## cluster go
@@ -2043,7 +2041,7 @@ tmp =  nectar_only2 %>%
   mutate(log_p = -log10(padj)) %>%
   ungroup() %>% 
   complete(clade, goTerm) # complete: pay attention to group_by
-n_distinct(tmp$goTerm) # 5
+n_distinct(tmp$goTerm) # 4
 
 y = tmp %>% ungroup() %>% arrange(desc(n_clades), clade) # , , clade
 # x = y %>% dplyr::select(cluster, goTerm) %>% distinct() %>% filter(!is.na(cluster))
@@ -2139,6 +2137,7 @@ dev.off()
 ```
 
 
+
 #### CONTROL
 ##### congvergent_gteq2way [fdr] - rm nectar
 ```{r, fig.height=3, fig.width=3}
@@ -2192,7 +2191,7 @@ path = paste0(out_dir, "GO_", fdr_flag,"_", tmp_acc_criteria, "_", tmp_accset, "
 pl = plotFunc_path_size_go(input_path_df = control_only_filtered, input_acc_criteria = tmp_acc_criteria) 
 
 graph_path = paste0(out_dir, "GO_", fdr_flag,"_", tmp_acc_criteria, "_", tmp_accset, "_rep_nocontrol_withgene_greathypogeometric_p1_", Sys.Date(), ".pdf")
-pdf(graph_path, width = Width_HalfCol*3.1, height = Width_HalfCol*0.275, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+pdf(graph_path, width = Width_HalfCol*3, height = Width_HalfCol*0.325, pointsize = AxisTxFontSizeSize, onefile = TRUE)
 pl
 dev.off()
 
@@ -2231,7 +2230,7 @@ control_only2 = control_only %>%
   mutate(n_clades = n_distinct(clade)) %>% 
   filter(n_clades >= 3) %>%
   mutate(go_id2 = gsub("_", ":", go_id))
-n_distinct(control_only2$go_id) # 4 clades: 0; 3 clades: 1
+n_distinct(control_only2$go_id) # 4 clades: 0; 3 clades: 0; 
 
 # plot
 ## cluster go
@@ -2244,7 +2243,7 @@ tmp =  control_only2 %>%
   mutate(log_p = -log10(padj)) %>%
   ungroup() %>% 
   complete(clade, goTerm) # complete: pay attention to group_by
-n_distinct(tmp$goTerm) # 5
+n_distinct(tmp$goTerm) # 0
 
 y = tmp %>% ungroup() %>% arrange(n_clades, clade) # , , clade
 # x = y %>% dplyr::select(cluster, goTerm) %>% distinct() %>% filter(!is.na(cluster))
