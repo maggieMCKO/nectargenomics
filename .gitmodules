@@ -7,3 +7,6 @@
 [submodule "msa_tools"]
 	path = msa_tools
 	url = https://github.com/osipovarev/msa_tools
+[submodule "Transcriptome_for_NectarGenomics"]
+	path = Transcriptome_for_NectarGenomics
+	url = https://github.com/osipovarev/Transcriptome_for_NectarGenomics
