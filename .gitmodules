@@ -4,3 +4,6 @@
 [submodule "absrel"]
 	path = absrel
 	url = https://github.com/osipovarev/absrel
+[submodule "#"]
+	path = "#"
+	url = https://github.com/osipovarev/Assembly_and_annotation
