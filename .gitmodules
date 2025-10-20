@@ -10,3 +10,6 @@
 [submodule "Transcriptome_for_NectarGenomics"]
 	path = Transcriptome_for_NectarGenomics
 	url = https://github.com/osipovarev/Transcriptome_for_NectarGenomics
+[submodule "absrel"]
+	path = absrel
+	url = https://github.com/osipovarev/absrel
