@@ -1,0 +1,2438 @@
+---
+title: "Fisher's exact test on association of T2D of nectar-accelerated cnees"
+author: "maggie"
+date: "2024-07-28"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+# set up
+```{r, setup=TRUE, message=FALSE}
+library(tidyverse)
+library(readxl)
+library(openxlsx) # BiocManager::install("openxlsx") # for reading merged cells
+library(janitor)
+library(ggvenn)
+library(RColorBrewer)
+
+FontSize = 2.5
+AxisTxFontSizeSize = 5 # sup:6
+AxisTxFontSizeSize_s = 5 # sup:6
+AxisTitleFontSizeSize = 5 # sup:6
+Factor_mmtoin = 0.0393701
+Width_HalfCol = 85*Factor_mmtoin 
+theme_m = theme(panel.background = element_blank(),
+                plot.background = element_blank(), # defualt is white
+                plot.title = element_text(colour = "black", size = AxisTitleFontSizeSize, hjust = 0.5),
+                plot.margin = margin(0.5, 2, 0.5, 0.5, "line"),
+                panel.grid = element_blank(),
+                panel.border = element_rect(color = "black", fill= NA, linewidth =.2),
+                axis.line = element_line(color = "black", linewidth = 0.2),
+                axis.title.x = element_text(colour = "black", size = AxisTitleFontSizeSize, hjust = 0.5),
+                axis.title.y = element_text(colour = "black", size = AxisTitleFontSizeSize),
+                axis.text.x = element_text(colour = "black", size = AxisTxFontSizeSize),
+                axis.text.y = element_text(colour = "black", size = AxisTxFontSizeSize, hjust = 0),
+                axis.ticks = element_line(colour = "black", linewidth = 0.05),
+                strip.text = element_text(colour = "black", size = AxisTxFontSizeSize),
+                legend.background = element_blank(),
+                legend.key = element_blank(),
+                legend.key.size = unit(8, "pt"),
+                legend.title = element_blank(),
+                legend.text = element_text(colour = "black", size = AxisTxFontSizeSize),
+                legend.position = "right")
+
+```
+
+# load data - cnee
+```{r, collapse = TRUE, message=FALSE, results = FALSE}
+# allcnees = read_tsv("allcnees.tsv") # based on linear/cnee_ncbigene100kb_intersect_allcnees_2.bed
+setwd("/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/T2D/")
+out_path = "/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/T2D/"
+
+path = "/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/cnee_gene_assignment_basalPlusExtension_proteincoding_allcnees.bed"
+allcnees = read_tsv(path, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
+      mutate(gene = gsub("LOC107051846", "IRS1", gene),
+           gene = gsub("LOC107055431", "NEDD4L", gene),
+           gene = gsub("gga-mir-6690", "CTSB", gene),
+           gene = gsub("gga-mir-12216", "B2M", gene),
+           gene = gsub("gga-mir-12230", "SLC27A4", gene),
+           gene = gsub("^Ii$", "CD74", gene)) %>% 
+  dplyr::select(id, gene) %>% distinct()
+
+
+# nectar
+target_file = list.files(paste0("/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/overlap/Loose/"), 
+                         ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+
+acccnees_100kb_withcnees0_loose = lapply(target_file, function(s){
+  # s = target_file[1]
+  tmp_name = basename(s)
+  tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_Loose_", "", tmp_name)
+  tmp_name = gsub(".bed", "", tmp_name)
+  print(paste0("current: ", tmp_name))
+  x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
+    dplyr::select(gene, id) %>%
+    bind_cols('group' = tmp_name) 
+}) %>% bind_rows()  %>% 
+  # mutate(group = gsub("_2", "", group)) %>% 
+  mutate(group = gsub("sunbirds_flowerpecker", "sunbirds", group)) %>% 
+  mutate(gene = gsub("LOC107051846", "IRS1", gene),
+         gene = gsub("LOC107055431", "NEDD4L", gene),
+         gene = gsub("gga-mir-6690", "CTSB", gene),
+         gene = gsub("gga-mir-12216", "B2M", gene),
+         gene = gsub("gga-mir-12230", "SLC27A4", gene),
+         gene = gsub("^Ii$", "CD74", gene))
+# head(acccnees_100kb_withcnees0_loose)
+
+acccnees_100kb_withcnees_loose = acccnees_100kb_withcnees0_loose %>% 
+  mutate(set = paste0("acc_", group), 
+         val = 1,
+         analysis = "acc") %>% 
+  dplyr::select(set, gene, val, analysis, group) %>% 
+  distinct()
+dim(acccnees_100kb_withcnees_loose) # 7559    5
+
+## keep only sets of 4 cloades
+acccnees_100kb_withcnees0_loose_sel = acccnees_100kb_withcnees0_loose %>%
+  filter(group %in% c("honeyeaters", "hummingbirds", "parrots", "sunbirds" )) 
+n_distinct(acccnees_100kb_withcnees0_loose_sel$id) # 11599
+
+nectar_acc = acccnees_100kb_withcnees0_loose_sel
+unique(nectar_acc$group)
+hummingbird_acc = nectar_acc %>% filter(group == "hummingbirds")
+parrot_acc = nectar_acc %>% filter(group == "parrots")
+honeyeater_acc = nectar_acc %>% filter(group == "honeyeaters")
+sunbird_acc = nectar_acc %>% filter(group == "sunbirds")
+
+# core nonnectar
+control_path = "/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/control_nodollo/great/"
+
+target_file = list.files(paste0(control_path, "/overlap/ControlLoose/"), 
+                         ".*_basalPlusExtension_\\w+.bed", full.names = T); target_file # great default assign rule
+
+acccnees_100kb_withcnees0_looseCon = lapply(target_file, function(s){
+  # s = target_file[1]
+  tmp_name = basename(s)
+  tmp_name = gsub("cnee_gene_assignment_basalPlusExtension_proteincoding_ControlLoose_", "", tmp_name)
+  tmp_name = gsub(".bed", "", tmp_name)
+  print(paste0("current: ", tmp_name))
+  x = read_tsv(s, col_names = c("chr", "start", "end", "id", "chr2", "start2", "end2", "gene")) %>% 
+    dplyr::select(gene, id) %>%
+    bind_cols('group' = tmp_name) 
+}) %>% bind_rows()  %>% 
+  # mutate(group = gsub("_2", "", group)) %>% 
+  mutate(group = gsub("sunbirds_flowerpecker", "sunbirds", group)) %>% 
+  mutate(gene = gsub("LOC107051846", "IRS1", gene),
+         gene = gsub("LOC107055431", "NEDD4L", gene),
+         gene = gsub("gga-mir-6690", "CTSB", gene),
+         gene = gsub("gga-mir-12216", "B2M", gene),
+         gene = gsub("gga-mir-12230", "SLC27A4", gene),
+         gene = gsub("^Ii$", "CD74", gene))
+# head(acccnees_100kb_withcnees0_looseCon)
+
+acccnees_100kb_withcnees_looseCon = acccnees_100kb_withcnees0_looseCon %>% 
+  mutate(set = paste0("acc_", group), 
+         val = 1,
+         analysis = "acc") %>% 
+  dplyr::select(set, gene, val, analysis, group) %>% 
+  distinct()
+dim(acccnees_100kb_withcnees_looseCon) # 11322    5
+
+## keep only sets of 4 cloades
+acccnees_100kb_withcnees0_looseCon_sel = acccnees_100kb_withcnees0_looseCon %>%
+  filter(group %in% c("swifts", "falcons", "lyrebirds", "passerides" )) 
+
+nonnectar_acc = acccnees_100kb_withcnees0_looseCon_sel #read_tsv("nonnectar_acc.tsv")
+
+unique(nonnectar_acc$group)
+swift_acc = nonnectar_acc %>% filter(group == "swifts")
+falcon_acc = nonnectar_acc %>% filter(group == "falcons")
+lyrebird_acc = nonnectar_acc %>% filter(group == "lyrebirds")
+passeride_acc = nonnectar_acc %>% filter(group == "passerides")
+
+```
+
+# load absrel
+```{r}
+# absrel list
+path = paste0("/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/combined/othersources/Suppl_Tables_v10.absrel.xlsx") # 2024 updated
+path = paste0("/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/combined/othersources/Suppl_Tables_v11.absrel.xlsx") # 2024 updated
+absrel0 = read_excel(path, sheet = 2, skip = 4) %>% 
+  pivot_longer(cols = everything(), names_to = "group", values_to = "gene")
+
+unique(absrel0$group)
+absrel = absrel0 %>% 
+  filter(!is.na(gene)) %>% 
+  mutate(val = 1) %>% 
+  distinct() %>% 
+  filter(!is.na(gene))
+n_distinct(absrel$gene) # 1030 # nect only
+n_distinct(absrel$gene) # 1817
+
+unique(absrel$group)
+
+absrel_nect = absrel %>% filter(group %in% c("hummingbirds", "honeyeaters", "parrots", "sunbirds"))
+absrel_nonnect = absrel %>% filter(group %in% c("swifts", "lyrebirds", "falcons", "passerides"))
+n_distinct(absrel_nect$gene) # 1030
+n_distinct(absrel_nonnect$gene) # 787
+
+absrel_nect_convg = absrel_nect %>% 
+  group_by(gene) %>% 
+  mutate(n_clades = n_distinct(group)) %>% 
+  filter(n_clades >= 2)
+n_distinct(absrel_nect_convg$gene) # 340
+
+
+absrel_nonnect_convg = absrel_nonnect %>% 
+  group_by(gene) %>% 
+  mutate(n_clades = n_distinct(group)) %>% 
+  filter(n_clades >= 2)
+n_distinct(absrel_nonnect_convg$gene) # 182
+
+
+
+```
+
+
+# load data - t2d - 1
+```{r}
+t2d_anno = read_tsv("t2d_evidence_merged_afterdebug_forPerm.tsv") %>% 
+  mutate(gene = gsub("AC012354.6", "SIX3", gene),
+         gene = gsub("AC122129.1", "RAI1", gene),
+         gene = gsub("CTA-85E5.10", "HORMAD2", gene),
+         gene = gsub("INS-IGF2", "INS", gene), # no need becuase we dont have INS anyway
+         gene = gsub("LOC107051846", "IRS1", gene))
+
+# t2d_anno = read_tsv(paste0("/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/T2D/", "t2d_evidence_merged_afterdebug_forPerm.tsv"))
+
+table(t2d_anno$evidence)
+unique(t2d_anno$evidence)
+t2d_annos = t2d_anno %>% filter(evidence == "strong") %>% 
+  dplyr::select(-id) %>% 
+  left_join(allcnees, by = 'gene') # associated cnees
+t2d_annoi = t2d_anno %>% filter(evidence == "intermediate") %>% 
+  dplyr::select(-id) %>% 
+  left_join(allcnees, by = 'gene') # associated cnees
+t2d_annow = t2d_anno %>% filter(evidence == "weak") %>% 
+  dplyr::select(-id) %>% 
+  left_join(allcnees, by = 'gene') # associated cnees
+n_distinct(t2d_annow$gene)
+
+t2d_anno_union = t2d_anno %>% distinct(gene, .keep_all = T) %>% 
+  dplyr::select(-id) %>% 
+  left_join(allcnees, by = 'gene') # associated cnees
+
+# t2d_anno_union = t2d_anno %>% distinct(gene, .keep_all = T) %>% 
+#   left_join(acccnees_100kb_withcnees0_loose_sel, by = "gene") %>% 
+#   left_join(absrel_nect, by = c("gene", "group"))# associated cnees
+# 
+# t2d_anno_union = t2d_anno_union %>% 
+#   filter(!is.na(group)) %>% 
+#   group_by(gene) %>% 
+#   mutate(n_conv = n_distinct(group))
+# # 0.3225806 30/93
+# x = final_briefCW %>% filter(gene %in% t2d_annow$gene)
+
+```
+
+# load data - t2d - Suzuki 2024
+```{r}
+# 2024 new data set
+# https://www.nature.com/articles/s41586-024-07019-6#Sec1
+project_path = paste0(getwd(), "/ref_Suzuki2024/")
+
+path = paste0(project_path, "41586_2024_7019_MOESM3_ESM.xlsx")
+t4 = read_excel(path, sheet = 4, skip = 2) %>% clean_names() %>% 
+  filter(!is.na(locus)) %>% 
+  filter(!is.na(chromosome)) %>% 
+  mutate(ori = locus) %>% 
+  separate_longer_delim(locus, delim = ", ")
+n_distinct(t4$locus) # 849
+
+# combine the first dataset
+t4c = t4 %>% full_join(t2d_anno, by = c("locus" = "gene")) %>% 
+  mutate(fixed_effects_or_95_percent_ci = gsub(" \\(.*", "", fixed_effects_or_95_percent_ci))
+t4c$evidence = factor(t4c$evidence, levels = c("strong", "intermediate", "weak", NA))
+
+t4c_cnee = t4c %>% 
+  dplyr::select(-id) %>% 
+  dplyr::rename(gene = locus) %>% 
+  left_join(allcnees, by = 'gene') # associated cnees
+
+t4c_75cnee = t4c %>% 
+  filter(risk_allele_frequencya > 0.75) %>% 
+  dplyr::select(-id) %>% 
+  dplyr::rename(gene = locus) %>% 
+  left_join(allcnees, by = 'gene') # associated cnees
+
+t4_only_cnee = t4 %>% 
+  dplyr::rename(gene = locus) %>% 
+  left_join(allcnees, by = 'gene') # associated cnees
+n_distinct(t4_only_cnee$gene) # 849
+
+t4_only_75cnee = t4 %>% 
+  filter(risk_allele_frequencya > 0.75) %>% 
+  dplyr::rename(gene = locus) %>% 
+  left_join(allcnees, by = 'gene') # associated cnees
+n_distinct(t4_only_75cnee$gene) # 175
+
+## sup table 6
+path = paste0(project_path, "41586_2024_7019_MOESM3_ESM.xlsx")
+# t6 = read_excel(path, sheet = 6, skip = 2) %>% clean_names() %>% 
+#   filter(!is.na(locus)) %>% 
+#   mutate(ori = locus) %>% 
+#   separate_longer_delim(locus, delim = ", ") %>% 
+#   dplyr::rename(gene = locus)
+
+t6 = read.xlsx(xlsxFile = path, sheet = 6, startRow = 3, fillMergedCells = TRUE) %>% clean_names() %>% 
+  filter(locus != "Locus") %>% 
+  filter(!is.na(locus)) %>% 
+  mutate(ori = locus) %>% 
+  separate_longer_delim(locus, delim = ", ") %>% 
+  dplyr::rename(gene = locus)
+n_distinct(t6$gene) # 850
+
+p = table(t6$cluster_assignment) %>% 
+  as.data.frame() %>% 
+  mutate(Var1 = fct_reorder(Var1, Freq, .desc = T)) %>% 
+  ggplot(aes(x = Var1, y = Freq)) + geom_col() +
+  geom_text(aes(label = Freq), vjust = 0) + 
+  scale_y_continuous(name = 'num. of genes', expand = c(0,0), limits = c(0, 800)) + theme_classic() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1),
+        axis.title.x = element_blank()); p
+
+# graph_path = paste0(out_path, "SuzukiST6clusters_", Sys.Date(), ".pdf")
+# pdf(graph_path, width = Width_HalfCol*1.25, height = Width_HalfCol*1, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+# p
+# dev.off()
+
+
+x = t6 %>% group_by(gene) %>% 
+  mutate(n_clusters = n_distinct(cluster_assignment)) %>% 
+  dplyr::select(gene, cluster_assignment, ori, n_clusters) %>% distinct() %>% 
+  arrange(desc(n_clusters), gene)
+
+# combine the first dataset
+t6c = t6 %>% full_join(t2d_anno, by = c("gene")) 
+t6c$evidence = factor(t6c$evidence, levels = c("strong", "intermediate", "weak", NA))
+
+clusters = unique(t6$cluster_assignment)
+# clusters = clusters[!grepl("Liver", clusters)]
+
+t6list = lapply(clusters, function(s){
+  sup = t6 %>% filter(cluster_assignment == s) %>% 
+  left_join(allcnees, by = 'gene') 
+})
+
+l = list("Beta cell -PI" = t6list[[5]]$gene, "Beta cell +PI" = t6list[[6]]$gene)
+ggvenn(l, show_percentage = F)
+cat(sort(intersect(t6list[[5]]$gene, t6list[[6]]$gene)), sep = "\n")
+
+l = list("Beta cell -PI" = unique(t6list[[5]]$gene), "Beta cell +PI" = unique(t6list[[6]]$gene), "Body fat" = unique(t6list[[1]]$gene))
+ggvenn(l, show_percentage = F)
+v = gplots::venn(l)
+isect <- attr(v, "intersection")
+cat(sort(isect$`Beta cell -PI:Beta cell +PI:Body fat`), sep = "\n")
+cat(sort(isect$`Beta cell -PI:Beta cell +PI`), sep = "\n")
+cat(sort(isect$`Beta cell -PI:Body fat`), sep = "\n")
+cat(sort(isect$`Beta cell +PI:Body fat`), sep = "\n")
+
+# checking how many convergent
+## phyloacc
+nectar_acc_4way = nectar_acc %>% 
+  group_by(gene) %>% 
+  summarise(n_clade = n_distinct(group)) %>% 
+  filter(n_clade == 4)
+
+x = t6 %>% filter(gene %in% nectar_acc_4way$gene)
+n_distinct(x$ori) # 74 loci
+n_distinct(x$gene) # 79 genes
+
+### sup table
+y = final_briefW_full2 %>% 
+  dplyr::select(gene, description) %>% distinct() 
+xx = x %>% 
+  left_join(y) %>% 
+  dplyr::select(ori, gene, description, index_snv, cluster_assignment) %>% distinct() %>% 
+  dplyr::rename(locus = ori) %>% 
+  arrange(cluster_assignment, locus, gene)
+path = paste0("Suzuki_4wayphyloacc_", Sys.Date(),".tsv"); 
+write_tsv(xx, file = path)
+  
+## absrel
+absrel_nect_4way = absrel_nect %>% 
+  group_by(gene) %>% 
+  summarise(n_clade = n_distinct(group)) %>% 
+  filter(n_clade == 4)
+
+x2 = t6 %>% filter(gene %in% absrel_nect_4way$gene)
+n_distinct(x2$ori) # 1 loci
+
+### check if the 74 loci (phyloacc 4way) had any absrel
+l = list("74 loci (79 genes)" = unique(x$gene), "absrel+" = absrel_nect$gene)
+ggvenn(l, show_percentage = F)  # 1 signal
+
+#### check if the 74 gene ends up doing absrel
+path = "/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/old_code/05_perm_phyloacc/1_rmPar/previous_materials/katya_new_chicken_anno/validated.final.isoformes.galGal6.ncbi_appris.tsv"
+appris = read_tsv(path, col_names = c("gene", "transcript"))
+
+l = list("appris" = unique(appris$gene), "74 loci (79 genes)" = unique(x$gene))
+ggvenn(l, show_percentage = F)
+setdiff(x$gene, appris$gene) # TENM4
+```
+
+
+# Fisher
+# inputs
+```{r}
+# nectar_lists = list(nectar_acc, hummingbird_acc, parrot_acc, honeyeater_acc, sunbird_acc)
+# nonnectar_lists = list(nonnectar_acc, swift_acc, falcon_acc, lyrebird_acc, passeride_acc)
+
+## full 
+# input_lists = list(nectar_acc, hummingbird_acc, parrot_acc, honeyeater_acc, sunbird_acc,
+#                    nonnectar_acc, swift_acc, falcon_acc, lyrebird_acc, passeride_acc)
+# names(input_lists) <- c("nectar", "hummingbird", "parrot", "honeyeater", "sunbird",
+#                         "nonnectar", "swift", "falcon", "lyrebird", "passeride")
+ 
+input_lists = list(nectar_acc, 
+                   nonnectar_acc)
+names(input_lists) <- c("nectar",
+                        "nonnectar")
+
+input_lists_gene = list(nectar_acc, nonnectar_acc, absrel_nect, absrel_nonnect)
+names(input_lists_gene) <- c("nectar", "nonnectar", "nect_absrel", "nonnect_absrel")
+
+# t2d_lists = list(t2d_annos, t2d_annow, t4c_cnee, t4c_75cnee, t4_only_cnee, t4_only_75cnee)
+# names(t2d_lists) <- c("t2d_strong", "t2d_weak", "t2d_plus", "t2d_plus_0.75", "t2d_new", "t2d_new_0.75")
+
+# t2d_lists = list(t2d_annos)
+# names(t2d_lists) <- c("t2d_strong")
+
+
+t2d_lists = t6list
+names(t2d_lists) <- clusters
+
+# t2d_lists = list(t6 %>% 
+#   left_join(allcnees, by = 'gene') )
+# names(t2d_lists) <- "Suzuki"
+
+```
+
+
+# classify *cnees* whether associated with acc. cnees and whether associated with T2D genes
+```{r, collapse = TRUE}
+
+allcnees2 = mapply(FUN = function(acc_list_ind, t2d_list_ind){
+  acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list)))
+  
+  acc = allcnees %>% dplyr::select(-gene) %>% distinct() %>%
+    mutate(acc = ifelse(id %in% acc_list[[1]]$id, 1, 0))
+  t2d = allcnees %>% dplyr::select(-gene) %>% distinct() %>%
+    mutate(t2d = ifelse(id %in% t2d_list[[1]]$id, 1, 0))
+
+  tmp = acc %>% full_join(t2d)
+  data = table(tmp$acc, tmp$t2d, useNA = 'ifany', deparse.level = 2)
+
+  data2 = matrix(c(data[2], data[1], data[4], data[3]), nrow = 2, ncol = 2)
+  dimnames(data2) = list(c("acc_Y", "acc_N"), c("t2d_N", "t2d_Y"))
+
+  result <- fisher.test(data2, alternative = "two.sided", conf.int = TRUE)
+  chi <- chisq.test(data2, correct = FALSE)
+  chiYates  <- chisq.test(data2, correct = TRUE)
+
+  union_nect_tb = data2 %>% tibble() %>%
+        mutate(`odds ratio` = result$estimate,
+               `Confidence Interval (95%)_1` = result$conf.int[1],
+               `Confidence Interval (95%)_2` = result$conf.int[2],
+               `P-Value_fisher` = result$p.value,
+               `P-Value_chi` = chi$p.value,
+               `P-Value_chiYates` = chiYates$p.value,
+               acc_set = names(acc_list),
+               t2d_set = names(t2d_list))
+}, SIMPLIFY = F,
+acc_list = rep(1:length(input_lists), each = length(t2d_lists)), 
+t2d_list = rep(1:length(t2d_lists), length(input_lists)))
+  
+re_tb = allcnees2 %>% bind_rows()
+```
+
+## plot all
+```{r}
+re_tb_sel = re_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set != 'union')
+
+# plot
+dft = re_tb_sel[, -c(1)] %>% 
+  distinct() %>%
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = `P-Value_fisher`) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, 'Y', 'N'),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+# remove liver and make 2 lines for t2d clusters
+dft2 = dft %>% filter(t2d_set != "Liver/lipid metabolism") %>% 
+  mutate(t2d_set = gsub(" ", "\n", t2d_set),
+         t2d_set = gsub("Beta\ncell", "Beta cell", t2d_set),
+         t2d_set = gsub("Body\nfat", "Body fat", t2d_set),
+         acc_set = gsub("nonnectar", "C", acc_set),
+         acc_set = gsub("nectar", "N", acc_set))
+
+sel_t2d = c("Body fat", "Beta cell +PI", "Beta cell -PI", "Residual glycaemic",
+            "Metabolic syndrome", "Obesity", "Lipodystrophy", "Liver/lipid metabolism")
+sel_t2d = gsub(" ", "\n", sel_t2d)
+sel_t2d = gsub("Beta\ncell", "Beta cell", sel_t2d)
+sel_t2d = gsub("Body\nfat", "Body fat", sel_t2d)
+dft2$t2d_set = factor(dft2$t2d_set, levels = sel_t2d)
+
+dft2$acc_set = factor(dft2$acc_set, levels = c("N", "C"))
+
+N = 2
+y_lim = ceiling(max(dft2$`Confidence Interval (95%)_2`)/N)*N
+y_lim = 2
+
+p = #ggplot(dft, aes(x = acc_set, color = sig)) +
+  ggplot(dft2, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0.05,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)
+                     ) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  # facet_wrap(t2d_set~., ncol = 2) +
+  facet_wrap(t2d_set~., nrow = 1) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        # axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # strip.text.y = element_text(angle = 0),
+        strip.text.x = element_text(margin = margin(0.5,1,0.5,1, "pt")),
+        panel.spacing = unit(2, 'pt'), # ori:2; small: 1
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+# graph_path = paste0(out_path, "/Fisher_cneelv_all_SuzukiST6_", Sys.Date(), ".pdf")
+# pdf(graph_path, width = Width_HalfCol*0.75, height = Width_HalfCol*1.25, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+# p
+# dev.off()
+
+
+graph_path = paste0(out_path, "/Fisher_cneelv_all_SuzukiST6_1row_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*1.25, height = Width_HalfCol*0.275, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+openfile(graph_path)
+```
+
+## for fig
+```{r}
+
+sel_t2d = c("Body fat", "Beta cell +PI", "Beta cell -PI")
+x = dft %>% filter(t2d_set %in% sel_t2d)
+x$t2d_set = factor(x$t2d_set, levels = sel_t2d)
+
+N = 2
+y_lim = ceiling(max(x$`Confidence Interval (95%)_2`)/N)*N
+
+p = ggplot(x, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0.05,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)
+                     ) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  facet_wrap(t2d_set~., ncol = 3) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        strip.text.y = element_text(angle = 0),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+graph_path = paste0(out_path, "/Fisher_cneelv_all_SuzukiST6clusters_sel_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*0.65, height = Width_HalfCol*0.375, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+openfile(graph_path)
+
+# vertical
+
+sel_t2d = c("Body fat", "Beta cell +PI", "Beta cell -PI")
+x = dft %>% filter(t2d_set %in% sel_t2d)
+x$t2d_set = factor(x$t2d_set, levels = sel_t2d)
+
+N = 2
+y_lim = ceiling(max(x$`Confidence Interval (95%)_2`)/N)*N
+
+p = ggplot(x, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)
+                     ) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  facet_wrap(t2d_set~., ncol = 1) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        # axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        strip.text.x = element_text(margin = margin(1,1,1,1, "pt")),
+        # strip.
+        strip.background = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+graph_path = paste0(out_path, "/Fisher_cneelv_all_SuzukiST6clusters_sel_vert_", Sys.Date(), ".pdf")
+graph_path = paste0(out_path, "/Fisher_cneelv_all_SuzukiST6clusters_sel_vert_shorter_", Sys.Date(), ".pdf")
+# pdf(graph_path, width = Width_HalfCol*0.3, height = Width_HalfCol*0.8, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+pdf(graph_path, width = Width_HalfCol*0.33, height = Width_HalfCol*0.7, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+openfile(graph_path)
+
+```
+
+
+# classify *genes* whether associated with acc. cnees and whether associated with T2D genes
+```{r, collapse = TRUE}
+
+# # nectar_lists = list(nectar_acc, hummingbird_acc, parrot_acc, honeyeater_acc, sunbird_acc)
+# # nonnectar_lists = list(nonnectar_acc, swift_acc, falcon_acc, lyrebird_acc, passeride_acc)
+# 
+# input_lists = list(nectar_acc, hummingbird_acc, parrot_acc, honeyeater_acc, sunbird_acc,
+#                    nonnectar_acc, swift_acc, falcon_acc, lyrebird_acc, passeride_acc,
+#                    absrel_nect, absrel_nonnect)
+# names(input_lists) <- c("nectar", "hummingbird", "parrot", "honeyeater", "sunbird",
+#                         "nonnectar", "swift", "falcon", "lyrebird", "passeride",
+#                         "nect_absrel", "nonnect_absrel")
+#   
+# t2d_lists = list(t2d_annos, t2d_annoi, t2d_annow)
+# names(t2d_lists) <- c("t2d_strong", "t2d_intermediate", "t2d_weak")
+
+re_gene = mapply(FUN = function(acc_list_ind, t2d_list_ind){
+  acc_list = input_lists_gene[acc_list_ind]
+  # acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list)))
+  
+  acc = allcnees %>% 
+    mutate(acc = ifelse(gene %in% acc_list[[1]]$gene, 1, 0)) %>% 
+    distinct(gene, .keep_all = TRUE)
+  t2d = allcnees %>% 
+    mutate(t2d = ifelse(gene %in% t2d_list[[1]]$gene, 1, 0)) %>% 
+    distinct(gene, .keep_all = TRUE)
+
+  tmp = acc %>% full_join(t2d)
+  data = table(tmp$acc, tmp$t2d, useNA = 'ifany', deparse.level = 2)
+
+  data2 = matrix(c(data[2], data[1], data[4], data[3]), nrow = 2, ncol = 2)
+  dimnames(data2) = list(c("acc_Y", "acc_N"), c("t2d_N", "t2d_Y"))
+
+  result <- fisher.test(data2, alternative = "two.sided", conf.int = TRUE)
+  chi <- chisq.test(data2, correct = FALSE)
+  chiYates  <- chisq.test(data2, correct = TRUE)
+
+  union_nect_tb = data2 %>% tibble() %>%
+        mutate(`odds ratio` = result$estimate,
+               `Confidence Interval (95%)_1` = result$conf.int[1],
+               `Confidence Interval (95%)_2` = result$conf.int[2],
+               `P-Value_fisher` = result$p.value,
+               `P-Value_chi` = chi$p.value,
+               `P-Value_chiYates` = chiYates$p.value,
+               acc_set = names(acc_list),
+               t2d_set = names(t2d_list))
+}, SIMPLIFY = F,
+acc_list = rep(1:length(input_lists_gene), each = length(t2d_lists)), 
+t2d_list = rep(1:length(t2d_lists), length(input_lists_gene)))
+  
+re_gene_tb = re_gene %>% bind_rows()
+```
+
+## plot all
+```{r}
+re_tb_sel = re_gene_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set != 'union')
+
+# plot
+dft = #re_tb_sel %>% 
+  re_tb_sel[, -c(1)] %>% 
+  distinct() %>%
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = `P-Value_fisher`) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, 'Y', 'N'),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+N = 2
+y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+y_lim = 3
+
+p = ggplot(dft, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0.05,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)
+                     ) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  facet_grid(t2d_set~.) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+graph_path = paste0(out_path, "/Fisher_genelv_all_SuzukiST6clusters_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*1, height = Width_HalfCol*1.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+openfile(graph_path)
+
+```
+
+## plot nectar and control - cnee
+```{r, eval=FALSE}
+re_tb_sel = re_gene_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set == 'weak', acc_set %in% c("nectar", "nonnectar", "nect_absrel", "nonnect_absrel"))
+
+# plot
+re_tb_sel2 = re_tb_sel[c(2,4,6,8),]
+dft = re_tb_sel2 %>% 
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = `P-Value_fisher`) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, 'Y', 'N'),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+N = 2
+y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+
+p = ggplot(dft, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0.05,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  # facet_grid(t2d_set~.) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+
+graph_path = paste0(out_path, "/Fisher_genelv_nectarvscontrol_nonredunt_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*0.4, height = Width_HalfCol*0.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+
+
+```
+
+# Hypogeometric
+
+So, I think the most likely possibility??is we are chasing noise here, and this is just a consequence of T2D genes tending to have higher regulatory complexity with more CNEEs around them. However, the averages can potentially be a bit obscuring here. One thing that might be fast and easy to do is, if you have a data frame with the number of accelerated CNEEs near each gene and the total CNEEs near each gene, you can do a quick calculation for genes with "excess" accelerated CNEEs (you can just do a hypergeometric test). If there is a real signal here, I'd expect that T2D genes would be enriched among the fraction with excess accelerated CNEEs.
+
+CNEE lv
+```{r, collapse = TRUE}
+
+# input_lists = list(nectar_acc, hummingbird_acc, parrot_acc, honeyeater_acc, sunbird_acc,
+#                    nonnectar_acc, swift_acc, falcon_acc, lyrebird_acc, passeride_acc)
+# names(input_lists) <- c("nectar", "hummingbird", "parrot", "honeyeater", "sunbird",
+#                         "nonnectar", "swift", "falcon", "lyrebird", "passeride")
+#   
+# t2d_lists = list(t2d_annos, t2d_annoi, t2d_annow)
+# names(t2d_lists) <- c("t2d_strong", "t2d_intermediate", "t2d_weak")
+
+hypergeometricFun = function(acc_list_ind, t2d_list_ind){
+  
+  acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list)))
+  
+  # gene associated with cnees (all), split to in term and not in term
+  # split (all) cnees to in term (T2D) and not in term
+  interm = allcnees %>% filter(id %in% t2d_list[[1]]$id) 
+  # notinterm = allcnees %>% filter(! gene %in% ko_tmp$gene)
+  
+  # for in term, split cnees to acc or not
+  interm_acc = interm %>% filter(id %in% acc_list[[1]]$id)
+  interm_notacc = interm %>% filter(! id %in% acc_list[[1]]$id)
+  
+  # for not in term, split cnees to acc or not
+  # notinterm_acc = notinterm %>% filter(id %in% acc_set_df$id)
+  # notinterm_notacc = notinterm %>% filter(! id %in% acc_set_df$id)
+  
+  # q: (number of input (nectar accelerated) cnees associated with the term of interest) - 1
+  n_input = n_distinct(interm_acc$id) 
+  q = n_input-1 
+  
+  # m: the number of cnees associated with the term of interest
+  m = n_distinct(interm_acc$id) + n_distinct(interm_notacc$id) # == interm$id
+  
+  # n: total number of cnees - number of cnees associated with the term of interest
+  allcnee_great_notinterm = allcnees %>% filter(!id %in% interm$id) 
+  n = n_distinct(allcnee_great_notinterm$id)
+  
+  # k: number of input (nectar accelerated) cnees 
+  k = n_distinct(acc_list[[1]]$id)
+
+  # Test for over-representation (enrichment)
+  # phyper(hitInSample-1, hitInBackgroun, failInBackground, sampleSize, lower.tail= FALSE);
+  hyper = phyper(q-1, m, n, k, lower.tail= FALSE);
+  out_df = tibble(acc_set = names(acc_list),
+                  t2d_set = names(t2d_list),
+                  q=q, m=m, n=n, k=k, pval = hyper)
+
+  return(out_df)
+}
+hypo_cnee = mapply(FUN = hypergeometricFun, SIMPLIFY = F,
+acc_list = rep(1:length(input_lists), each = length(t2d_lists)), 
+t2d_list = rep(1:length(t2d_lists), length(input_lists)))
+
+hypo_cnee_tb = hypo_cnee %>% bind_rows()
+```
+
+## plot all
+```{r}
+re_tb_sel = hypo_cnee_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set != 'union')
+
+# plot
+dft = re_tb_sel %>% 
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = pval) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, '*', NA),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+# dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+N = 2
+y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+
+pal <- RColorBrewer::brewer.pal(9, 'Reds')
+p = ggplot(dft, aes(x = acc_set, y = t2d_set)) +
+  geom_tile(aes(fill = `P-Value`)) +
+  geom_text(aes(label = sig), hjust = 0.5, vjust = 0.75) +
+  scale_fill_gradient(high = pal[2], low = "#dc2943ff", n.breaks = 5, na.value = 'grey90') +
+  # geom_point(aes( y = `odds ratio`), size = 0.75) +
+  # geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+  #                   ymax = `Confidence Interval (95%)_2`), width = 0) +
+  # geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  # scale_y_continuous(expand = c(0,0,0.05,0),
+  #                    limits = c(0, y_lim),
+  #                    breaks = seq(0, y_lim, by = 2)) +
+  # scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  # facet_grid(t2d_set~.) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'right'); p
+
+graph_path = paste0(out_path, "/hypogeometric_cneelv_all_SuzukiST6clusters_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*0.6, height = Width_HalfCol*0.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+openfile(graph_path)
+
+```
+
+## plot weak
+```{r, eval=FALSE}
+re_tb_sel = hypo_cnee_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set == 'weak') %>% 
+  mutate(percentage = signif(q/k, digits = 2) )
+
+# plot
+dft = re_tb_sel %>% 
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = pval) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, '*', NA),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+# dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+N = 2
+y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+
+pal <- RColorBrewer::brewer.pal(9, 'Reds')
+p = ggplot(dft, aes(x = acc_set, y = t2d_set)) +
+  geom_tile(aes(fill = `P-Value`)) +
+  geom_text(aes(label = sig), hjust = 0.5, vjust = 0.75) +
+  scale_fill_gradient(high = pal[2], low = "#dc2943ff", n.breaks = 5, na.value = 'grey90') +
+  # geom_point(aes( y = `odds ratio`), size = 0.75) +
+  # geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+  #                   ymax = `Confidence Interval (95%)_2`), width = 0) +
+  # geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  # scale_y_continuous(expand = c(0,0,0.05,0),
+  #                    limits = c(0, y_lim),
+  #                    breaks = seq(0, y_lim, by = 2)) +
+  # scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  # facet_grid(t2d_set~.) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'right'); p
+
+
+graph_path = paste0(out_path, "/hypogeometric_cneelv_weak_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*0.75, height = Width_HalfCol*0.2, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+
+
+```
+
+## x 
+CNEE lv
+```{r, collapse = TRUE}
+
+# input_lists = list(nectar_acc, hummingbird_acc, parrot_acc, honeyeater_acc, sunbird_acc,
+#                    nonnectar_acc, swift_acc, falcon_acc, lyrebird_acc, passeride_acc)
+# names(input_lists) <- c("nectar", "hummingbird", "parrot", "honeyeater", "sunbird",
+#                         "nonnectar", "swift", "falcon", "lyrebird", "passeride")
+#   
+# t2d_lists = list(t2d_annos, t2d_annoi, t2d_annow)
+# names(t2d_lists) <- c("t2d_strong", "t2d_intermediate", "t2d_weak")
+
+hypergeometricFun2 = function(acc_list_ind, t2d_list_ind){
+  
+  acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list)))
+  
+  # gene associated with cnees (all), split to in term and not in term
+  # split (all) cnees to in term (T2D) and not in term
+  interm = allcnees %>% filter(id %in% t2d_list[[1]]$id) 
+  interm2 = interm %>% 
+    group_by(gene) %>% summarize(n = n_distinct(id), set = "m", set2 = 'bg') 
+  # notinterm = allcnees %>% filter(! gene %in% ko_tmp$gene)
+  
+  # for in term, split cnees to acc or not
+  interm_acc = interm %>% filter(id %in% acc_list[[1]]$id) 
+  interm_acc2 = interm_acc %>% 
+    group_by(gene) %>% summarize(n = n_distinct(id), set = "q", set2 = 'input') 
+  interm_notacc = interm %>% filter(! id %in% acc_list[[1]]$id)
+  
+  # for not in term, split cnees to acc or not
+  # notinterm_acc = notinterm %>% filter(id %in% acc_set_df$id)
+  # notinterm_notacc = notinterm %>% filter(! id %in% acc_set_df$id)
+  
+  # q: (number of input (nectar accelerated) cnees associated with the term of interest) - 1
+  n_input = n_distinct(interm_acc$id) 
+  q = n_input-1 
+  
+  # m: the number of cnees associated with the term of interest
+  m = n_distinct(interm_acc$id) + n_distinct(interm_notacc$id) # == interm$id
+  
+  # n: total number of cnees - number of cnees associated with the term of interest
+  allcnee_great_notinterm = allcnees %>% filter(!id %in% interm$id) 
+  allcnee_great_notinterm2 = allcnee_great_notinterm %>% 
+    group_by(gene) %>% summarize(n = n_distinct(id), set = "n", set2 = 'bg')
+  n = n_distinct(allcnee_great_notinterm$id)
+  
+  # k: number of input (nectar accelerated) cnees 
+  k = n_distinct(acc_list[[1]]$id)
+  k_tb = acc_list[[1]] %>% 
+    group_by(gene) %>% summarize(n = n_distinct(id), set = "k", set2 = 'input') 
+
+  # Test for over-representation (enrichment)
+  # phyper(hitInSample-1, hitInBackgroun, failInBackground, sampleSize, lower.tail= FALSE);
+  hyper = phyper(q-1, m, n, k, lower.tail= FALSE);
+  out_df = tibble(acc_set = names(acc_list),
+                  t2d_set = names(t2d_list),
+                  q=q, m=m, n=n, k=k, pval = hyper)
+  
+  out_df2 = interm2 %>% bind_rows(interm_acc2) %>% bind_rows(allcnee_great_notinterm2) %>%  bind_rows(k_tb) %>% 
+    mutate(acc_set = names(acc_list),
+                  t2d_set = names(t2d_list))
+  return(out_df2)
+}
+hypo_cnee = mapply(FUN = hypergeometricFun2, SIMPLIFY = F,
+acc_list = rep(1:length(input_lists), each = length(t2d_lists)), 
+t2d_list = rep(1:length(t2d_lists), length(input_lists)))
+
+hypo_cnee_tb2 = hypo_cnee %>% bind_rows()
+```
+
+```{r}
+x = hypo_cnee_tb2 %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  # filter(t2d_set == 'weak') %>% 
+  filter(set2 == 'input')
+
+x$acc_set = factor(x$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+p = ggplot(x, aes(x = n, fill = set)) +
+  geom_histogram(bins = 100, alpha = 0.5) +
+  facet_grid(acc_set~t2d_set) + 
+  theme_m; p
+
+out_path = "/Users/maggie/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/T2D/"
+graph_path = paste0(out_path, "/hypogeometric_cneelv_weak_dist_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*0.75, height = Width_HalfCol*2, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+
+
+```
+
+
+## q
+```{r}
+x = hypo_cnee_tb2 %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  # filter(t2d_set == 'weak') %>% 
+  filter(set == 'q')
+
+x$acc_set = factor(x$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+p = ggplot(x, aes(x = n)) +
+  geom_histogram(alpha = 0.5) +
+  facet_wrap(acc_set~t2d_set, ncol = 6) +
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_text(colour = "black", size = AxisTitleFontSizeSize, hjust = 0.5),
+        axis.title.y = element_text(colour = "black", size = AxisTitleFontSizeSize),
+        axis.text.x = element_text(colour = "black", size = AxisTxFontSizeSize),
+        axis.text.y = element_text(colour = "black", size = AxisTxFontSizeSize, hjust = 0),
+        axis.ticks = element_line(colour = "black", linewidth = 0.05),
+        strip.text = element_text(colour = "black", size = AxisTxFontSizeSize)); p
+
+out_path = "/Users/maggie/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/T2D/"
+graph_path = paste0(out_path, "/hypogeometric_cneelv_weak_dist_q_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*1, height = Width_HalfCol*1.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+
+
+```
+
+## with m
+```{r, eval=FALSE}
+x = hypo_cnee_tb2 %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set == 'weak') %>% 
+  filter(set == 'q') 
+y = hypo_cnee_tb2 %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set == 'weak') %>% 
+  filter(set == 'm', acc_set == 'nectar') %>% 
+  mutate(acc_set = 'bg (m)')
+x = x %>% bind_rows(y)
+
+x$acc_set = factor(x$acc_set, levels = c(
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel",
+                                         "nectar", "nonnectar", 'bg (m)'))
+
+p = ggplot(y, aes(x = n)) +
+  geom_histogram(alpha = 0.5) +
+  facet_wrap(acc_set~., ncol = 4) +
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_text(colour = "black", size = AxisTitleFontSizeSize, hjust = 0.5),
+        axis.title.y = element_text(colour = "black", size = AxisTitleFontSizeSize),
+        axis.text.x = element_text(colour = "black", size = AxisTxFontSizeSize),
+        axis.text.y = element_text(colour = "black", size = AxisTxFontSizeSize, hjust = 0),
+        axis.ticks = element_line(colour = "black", linewidth = 0.05),
+        strip.text = element_text(colour = "black", size = AxisTxFontSizeSize)); p
+
+out_path = "/Users/maggie/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/T2D/"
+# graph_path = paste0(out_path, "/hypogeometric_cneelv_weak_dist_qm_", Sys.Date(), ".pdf")
+# pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*1.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+
+graph_path = paste0(out_path, "/hypogeometric_cneelv_weak_dist_m_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*1.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+
+
+```
+
+# Hypogeometric gene lv
+
+Hi Maggie,
+
+This isn't quite the test I described, I don't think. I don't quite understand what you are testing.
+
+The pattern we observe is that T2D-associated CNEEs are more likely to be accelerated in nectar species, but T2D genes are not more likely to have an accelerated CNEE nearby than expected.
+
+We can also observe that T2D genes have, on average, more CNEEs near them than non-T2D genes.
+
+So, one possible explanation for the pattern that we observe is simply that there are more accelerated CNEEs in nectar species than non-nectar species, so since T2D genes have big regulatory domains, by chance we observe more accelerated CNEEs near these genes in nectar than non-nectar (but this is just an artifact of a bigger target size).
+
+Another possible explanation??is that this is driven by greater clustering, in a sense: a given T2D gene has a greater proportion of its CNEEs accelerated in nectar species than we'd expect by chance (if CNEEs were randomly distributed across the genome).
+
+To distinguish these hypotheses, we can do a per-gene test:
+1. For each gene in the genome, you have two numbers: # of accelerated CNEEs, and total number of CNEEs. In this case # of accelerated CNEEs can either be for a specific lineage, or for all nectar or all non-nectar species.
+2. You also have the genome-wide total number of CNEEs, and number of accelerated CNEEs
+3. Now, for each gene you can do a hypergeometric test: are there more accelerated CNEEs near this gene than we'd expect by chance?
+4. We now have a p-value for each gene: are accelerated CNEEs clustered near this gene?
+5. Now, we can compare T2D and non-T2D genes. Do T2D genes have lower P-values for this test, on average for nectar acceleration? What about non-nectar acceleration?
+
+If the signal is real, we'd expect to see more T2D genes with nectar accelerated CNEEs clustering near them.
+
+I don't think the CNEE pattern alone is meaningful, since this can easily be explained simply by the larger number of associated CNEEs associated with T2D genes.
+
+Tim
+
+```{r, collapse = TRUE}
+
+# input_lists = list(nectar_acc, hummingbird_acc, parrot_acc, honeyeater_acc, sunbird_acc,
+#                    nonnectar_acc, swift_acc, falcon_acc, lyrebird_acc, passeride_acc)
+# names(input_lists) <- c("nectar", "hummingbird", "parrot", "honeyeater", "sunbird",
+#                         "nonnectar", "swift", "falcon", "lyrebird", "passeride")
+#   
+# t2d_lists = list(t2d_annos, t2d_annoi, t2d_annow)
+# names(t2d_lists) <- c("t2d_strong", "t2d_intermediate", "t2d_weak")
+
+hypergeometricFun = function(acc_list_ind, t2d_list_ind){
+  
+  acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list)))
+  
+  df = allcnees %>%
+    mutate(acc = ifelse(id %in% acc_list[[1]]$id, 1, 0),
+           n_acc_genome = sum(acc),
+           n_cnee_genome = n_distinct(id)) %>% 
+    group_by(gene) %>% 
+    mutate(n_acc = sum(acc),
+           n_cnee = n_distinct(id)) 
+  df2 = df %>% dplyr::select(-id, -acc) %>% distinct()
+  
+  hypo_gene_func = function(n_acc, n_acc_genome, n_cnee_genome, n_cnee){
+    hyper = phyper(n_acc-1, n_acc_genome, n_cnee_genome-n_acc_genome, n_cnee, lower.tail= FALSE);
+  }
+  hypo_gene_tmp = df2 %>% rowwise() %>% 
+    mutate(pval = hypo_gene_func(n_acc, n_acc_genome, n_cnee_genome, n_cnee),
+           t2d = ifelse(gene %in% t2d_list[[1]]$gene, 1, 0),
+           acc_set = names(acc_list),
+           t2d_set = names(t2d_list)) 
+  return(hypo_gene_tmp)
+}
+
+# hypo_gene = lapply(1:length(input_lists), FUN = hypergeometricFun)
+hypo_gene = mapply(FUN = hypergeometricFun, SIMPLIFY = F,
+                   acc_list = rep(1:length(input_lists), each = length(t2d_lists)), 
+                   t2d_list = rep(1:length(t2d_lists), length(input_lists)))
+
+hypo_gene_tb = hypo_gene %>% bind_rows() 
+```
+
+## plot all
+```{r}
+
+re_tb_sel = hypo_gene_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) #%>% 
+  # filter(t2d_set == 'weak')
+  # filter(t2d_set == 'new')
+
+
+re_tb_sel$acc_set = factor(re_tb_sel$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+# re_tb_sel$t2d_set = factor(re_tb_sel$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+
+# calculate quantiles
+x = re_tb_sel %>% 
+  group_by(acc_set, t2d_set, t2d) %>% 
+  summarise(
+    count = n(),
+    ave_n_acc = mean(n_acc, na.rm = TRUE),
+    ave_n_cnee = mean(n_cnee, na.rm = TRUE),
+    n_acc_genome = n_acc_genome[1],
+    n_cnee_genome = n_cnee_genome[1],
+    # median = median(pval, na.rm = TRUE),
+    # IQR = IQR(pval, na.rm = TRUE),
+    as_tibble_row(quantile(pval,na.rm = TRUE))
+  )
+  
+# Mann-Whitney U Test (Wilcoxon Rank-Sum Test) for p value **
+y = re_tb_sel %>% 
+  group_by(acc_set, t2d_set) %>% 
+  do(w = wilcox.test(pval ~ t2d, data=., exact = FALSE),
+     wg = wilcox.test(pval ~ t2d, data=., alternative = "greater", exact = FALSE), # nonT2D > T2d
+     wl = wilcox.test(pval ~ t2d, data=., alternative = "less", exact = FALSE) # nonT2D < T2d
+     # ks = ks.test(pval ~ t2d, data=., exact = FALSE)
+     ) %>% 
+       reframe(acc_set, t2d_set,
+               Wilcox_2tail = w$p.value, 
+               Wilcox_2tail_sig = ifelse(Wilcox_2tail<0.05, '*', NA),
+               Wilcox_greater = wg$p.value,
+               Wilcox_greater_sig = ifelse(Wilcox_greater<0.05, '*', NA),
+               Wilcox_less = wl$p.value,
+               Wilcox_less_sig = ifelse(Wilcox_less<0.05, '*', NA)
+                 # ks = ks$p.value
+                 )
+
+# Mann-Whitney U Test (Wilcoxon Rank-Sum Test) for number of CNEEs
+z = re_tb_sel %>% 
+  group_by(acc_set, t2d_set) %>% 
+  do(w = wilcox.test(n_cnee ~ t2d, data=., exact = FALSE),
+     wl = wilcox.test(n_cnee ~ t2d, data=., alternative = "less", exact = FALSE) # nonT2D < T2d
+     # ks = ks.test(pval ~ t2d, data=., exact = FALSE)
+     ) %>% 
+       reframe(acc_set, t2d_set,
+                 Wilcox_2tail = w$p.value, 
+                 Wilcox_greater = wl$p.value
+                 # ks = ks$p.value
+                 )
+
+# Mann-Whitney U Test (Wilcoxon Rank-Sum Test) for number of acc CNEEs
+tt = re_tb_sel %>% 
+  group_by(acc_set, t2d_set) %>% 
+  do(w = wilcox.test(n_acc ~ t2d, data=., exact = FALSE),
+     wl = wilcox.test(n_acc ~ t2d, data=., alternative = "less", exact = FALSE) # nonT2D < T2d
+     # ks = ks.test(pval ~ t2d, data=., exact = FALSE)
+     ) %>% 
+       reframe(acc_set, t2d_set,
+                 Wilcox_2tail = w$p.value, 
+                 Wilcox_greater = wl$p.value
+                 # ks = ks$p.value
+                 )
+
+# re_tb_sel2 = re_tb_sel %>% 
+#   filter(acc_set %in% c('nonnectar')) 
+# levels(re_tb_sel2$t2d) <- c(0,1)
+# res <- wilcox.test(pval ~ t2d, data = re_tb_sel2,
+#                    exact = FALSE, alternative = 'greater')
+# res
+
+# subset for plot
+# re_tb_sel2 = re_tb_sel %>% 
+#   filter(acc_set %in% c('nectar', "nonnectar")) 
+
+dft = re_tb_sel %>% 
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = pval) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, '*', NA),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+# dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+# N = 2
+# y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+
+# p = ggplot(dft, aes(x = `P-Value`, fill = as.factor(t2d))) +
+#   geom_histogram(alpha = 0.5) +
+#   # geom_density(alpha = 0.5) +
+#   facet_grid(.~acc_set) +
+#   theme_m +
+#   theme(axis.title.x = element_blank(),
+#         axis.title.y = element_blank(),
+#         # axis.ticks.x = element_blank(),
+#         # axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+#         axis.text.y = element_text(hjust = 1),
+#         axis.line = element_line(colour = "black"),
+#         # panel.border = element_blank(),
+#         panel.background = element_blank(),
+#         legend.position = 'right'); p
+
+
+p = ggplot(dft, aes(y = `P-Value`, x = as.factor(t2d))) +
+  geom_boxplot(outlier.alpha = 0.25, outlier.size = 0.25) +
+  facet_wrap(t2d_set~acc_set, ncol = 4) +
+  scale_x_discrete(name = 'T2D') +
+  scale_y_continuous(limits = c(0, 1.2)) +
+  theme_m +
+  theme(#axis.title.x = element_blank(),
+        # axis.title.y = element_blank(),
+        # axis.ticks.x = element_blank(),
+        # axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'right'); p
+
+# graph_path = paste0(out_path, "/hypogeometric_per_gene_", Sys.Date(), ".pdf")
+# pdf(graph_path, width = Width_HalfCol*0.75, height = Width_HalfCol*1, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+graph_path = paste0(out_path, "/hypogeometric_per_gene_all_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*2, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+openfile(graph_path)
+```
+
+# exactly n way convergent - gene lv
+test all genes if n-way convergently acc. associated genes are also associated with t2d genes
+-> no
+```{r}
+
+# gene
+nectar_acc_4way = nectar_acc %>% 
+  group_by(gene) %>% 
+  summarise(n_clade = n_distinct(group)) %>% 
+  filter(n_clade == 4)
+l = list('t2d_genes' = unique(t2d_annow$gene), 
+         'nectar_4way' = unique(nectar_acc_4way$gene))
+
+l = list('t2d_suzuki' = unique(t6$gene), 
+         'nectar_4way' = unique(nectar_acc_4way$gene))
+ggvenn(l)
+v = gplots::venn(l) 
+isect <- attr(v, "intersection")
+cat(sort(isect$`t2d_genes:nectar_4way`), sep = "\n") # 31
+# BCL11A, CMIP, CPQ, DGKB, DLK1, ETS1, GRB14, HMGA2, IGF1, IGF2, IL17REL, IRS2, IRX3, IRX5, ITGA1, KCNQ1, MC4R, PAX6, PCDH17, PDE3B, PROX1, RBMS1, SIX2, SPRY2, TCF7L2, TLE1, UBE2E2, ZBTB20, ZFP36L2, ZMIZ1
+# x = final_briefW %>% filter(gene %in% isect$`t2d_genes:nectar_4way`) %>% 
+#   arrange(gene)
+# cat(x$description, sep = "\n")
+## manually made sup table
+
+# absrel gene
+absrel_nect_4way = absrel_nect %>% 
+  group_by(gene) %>% 
+  summarise(n_clade = n_distinct(group)) %>% 
+  filter(n_clade == 4)
+l = list('t2d_genes' = unique(t2d_annow$gene), 
+         'nectar_4way_absrel' = unique(absrel_nect_4way$gene))
+ggvenn(l)
+v = gplots::venn(l)
+isect <- attr(v, "intersection")
+cat(sort(isect$`t2d_genes:nectar_4way_absrel`), sep = "\n")
+
+# fisher on whether input lists are convergent (just do)
+# input_lists = list(nectar_acc, hummingbird_acc, parrot_acc, honeyeater_acc, sunbird_acc,
+#                    nonnectar_acc, swift_acc, falcon_acc, lyrebird_acc, passeride_acc)
+# names(input_lists) <- c("nectar", "hummingbird", "parrot", "honeyeater", "sunbird",
+#                         "nonnectar", "swift", "falcon", "lyrebird", "passeride")
+#   
+# t2d_lists = list(t2d_annos, t2d_annoi, t2d_annow)
+# names(t2d_lists) <- c("t2d_strong", "t2d_intermediate", "t2d_weak")
+
+# input_lists = list(nectar_acc,
+#                    nonnectar_acc)
+# names(input_lists) <- c("nectar",
+#                         "nonnectar")
+#   
+# t2d_lists = list( t2d_annow)
+# names(t2d_lists) <- c("t2d_weak")
+
+re_gene = mapply(FUN = function(acc_list_ind, t2d_list_ind, n_way){
+  # acc_list_ind = 1
+  # t2d_list_ind = 1
+  # n_way = 4
+  
+  acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list), n_way))
+  
+  nectar_conv_nway = acc_list[[1]] %>% 
+    group_by(gene) %>% 
+    summarise(n_clade = n_distinct(group)) %>% 
+    filter(n_clade == n_way)
+  
+  conv = allcnees %>% 
+    mutate(conv = ifelse(gene %in% nectar_conv_nway$gene, 1, 0)) %>% 
+    distinct(gene, .keep_all = TRUE)
+  t2d = allcnees %>% 
+    mutate(t2d = ifelse(gene %in% t2d_list[[1]]$gene, 1, 0)) %>% 
+    distinct(gene, .keep_all = TRUE)
+  
+  tmp = conv %>% full_join(t2d)
+  data = table(tmp$conv, tmp$t2d, useNA = 'ifany', deparse.level = 2)
+  
+  data2 = matrix(c(data[2], data[1], data[4], data[3]), nrow = 2, ncol = 2)
+  dimnames(data2) = list(c("conv_Y", "conv_N"), c("t2d_N", "t2d_Y"))
+  
+  result <- fisher.test(data2, alternative = "two.sided", conf.int = TRUE)
+  chi <- chisq.test(data2, correct = FALSE)
+  chiYates  <- chisq.test(data2, correct = TRUE)
+  
+  union_nect_tb = data2 %>% tibble() %>%
+    mutate(`odds ratio` = result$estimate,
+           `Confidence Interval (95%)_1` = result$conf.int[1],
+           `Confidence Interval (95%)_2` = result$conf.int[2],
+           `P-Value_fisher` = result$p.value,
+           `P-Value_chi` = chi$p.value,
+           `P-Value_chiYates` = chiYates$p.value,
+           acc_set = names(acc_list),
+           t2d_set = names(t2d_list),
+           n_way = n_way)
+}, SIMPLIFY = F,
+acc_list = rep(1:length(input_lists), each = length(t2d_lists)), 
+t2d_list = rep(1:length(t2d_lists), length(input_lists)),
+n_way = rep(2:4, each = length(input_lists)*length(t2d_lists)))
+
+# # check
+# acc_list = rep(1:length(input_lists), each = length(t2d_lists))
+# t2d_list = rep(1:length(t2d_lists), length(input_lists))
+# n_way = rep(2:4, each = length(input_lists)*length(t2d_lists))
+# rbind(acc_list, t2d_list, n_way)
+
+re_gene_tb = re_gene %>% bind_rows()
+
+```
+
+## plot all
+```{r}
+re_tb_sel = re_gene_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set != 'union')
+
+# plot
+dft = re_tb_sel %>% 
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = `P-Value_fisher`) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, 'Y', 'N'),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+N = 2
+y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+y_lim = 3
+
+p = ggplot(dft, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0.05,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)
+                     ) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  facet_grid(n_way~t2d_set) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+graph_path = paste0(out_path, "/Fisher_genelv_all_SuzukiST6clusters_exactlyNway_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*1, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+p
+dev.off()
+openfile(graph_path)
+
+```
+
+# >=2 way convergent - gene lv
+test all genes if convergently acc. (>=2 way) associated genes are also associated with t2d genes
+-> no
+```{r}
+
+# input_lists = list(nectar_acc,
+#                    nonnectar_acc)
+# names(input_lists) <- c("nectar",
+#                         "nonnectar")
+#   
+# t2d_lists = list( t2d_annow)
+# names(t2d_lists) <- c("t2d_weak")
+
+re_gene = mapply(FUN = function(acc_list_ind, t2d_list_ind){
+  # acc_list_ind = 1
+  # t2d_list_ind = 1
+  # n_way = 4
+  
+  acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list)))
+  
+  nectar_conv_nway = acc_list[[1]] %>% 
+    group_by(gene) %>% 
+    summarise(n_clade = n_distinct(group)) %>% 
+    filter(n_clade >=2 )
+  
+  conv = allcnees %>% 
+    mutate(conv = ifelse(gene %in% nectar_conv_nway$gene, 1, 0)) %>% 
+    distinct(gene, .keep_all = TRUE)
+  t2d = allcnees %>% 
+    mutate(t2d = ifelse(gene %in% t2d_list[[1]]$gene, 1, 0)) %>% 
+    distinct(gene, .keep_all = TRUE)
+  
+  tmp = conv %>% full_join(t2d)
+  data = table(tmp$conv, tmp$t2d, useNA = 'ifany', deparse.level = 2)
+  
+  data2 = matrix(c(data[2], data[1], data[4], data[3]), nrow = 2, ncol = 2)
+  dimnames(data2) = list(c("conv_Y", "conv_N"), c("t2d_N", "t2d_Y"))
+  
+  result <- fisher.test(data2, alternative = "two.sided", conf.int = TRUE)
+  chi <- chisq.test(data2, correct = FALSE)
+  chiYates  <- chisq.test(data2, correct = TRUE)
+  
+  union_nect_tb = data2 %>% tibble() %>%
+    mutate(`odds ratio` = result$estimate,
+           `Confidence Interval (95%)_1` = result$conf.int[1],
+           `Confidence Interval (95%)_2` = result$conf.int[2],
+           `P-Value_fisher` = result$p.value,
+           `P-Value_chi` = chi$p.value,
+           `P-Value_chiYates` = chiYates$p.value,
+           acc_set = names(acc_list),
+           t2d_set = names(t2d_list))
+}, SIMPLIFY = F,
+acc_list = rep(1:length(input_lists), each = length(t2d_lists)), 
+t2d_list = rep(1:length(t2d_lists), length(input_lists)))
+
+# # check
+# acc_list = rep(1:length(input_lists), each = length(t2d_lists))
+# t2d_list = rep(1:length(t2d_lists), length(input_lists))
+# n_way = rep(2:4, each = length(input_lists)*length(t2d_lists))
+# rbind(acc_list, t2d_list, n_way)
+
+re_gene_tb = re_gene %>% bind_rows()
+
+```
+
+## plot all
+```{r}
+re_tb_sel = re_gene_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set != 'union')
+
+# plot
+dft = re_tb_sel %>% 
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = `P-Value_fisher`) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, 'Y', 'N'),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+N = 2
+y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+y_lim = 3
+
+p = ggplot(dft, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0.05,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  facet_grid(.~t2d_set) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+
+graph_path = paste0(out_path, "/Fisher_genelv_all_SuzukiST6clusters_eqgt2way_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*0.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+openfile(graph_path)
+
+```
+
+# exactly n way convergent - cnee lv
+test all cnee if n-way convergently acc. cnee are also associated with t2d genes
+-> no
+```{r}
+
+re_cnee = mapply(FUN = function(acc_list_ind, t2d_list_ind, n_way){
+  # acc_list_ind = 1
+  # t2d_list_ind = 1
+  # n_way = 4
+  
+  acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list), n_way))
+  
+  nectar_conv_nway = acc_list[[1]] %>% 
+    group_by(id) %>% 
+    summarise(n_clade = n_distinct(group)) %>% 
+    filter(n_clade == n_way)
+  
+  conv = allcnees %>% dplyr::select(-gene) %>% distinct() %>%
+    mutate(conv = ifelse(id %in% nectar_conv_nway$id, 1, 0)) %>% 
+    distinct(id, .keep_all = TRUE)
+  t2d = allcnees %>% dplyr::select(-gene) %>% distinct() %>%
+    mutate(t2d = ifelse(id %in% t2d_list[[1]]$id, 1, 0)) %>% 
+    distinct(id, .keep_all = TRUE)
+  
+  tmp = conv %>% full_join(t2d)
+  data = table(tmp$conv, tmp$t2d, useNA = 'ifany', deparse.level = 2)
+  
+  data2 = matrix(c(data[2], data[1], data[4], data[3]), nrow = 2, ncol = 2)
+  dimnames(data2) = list(c("conv_Y", "conv_N"), c("t2d_N", "t2d_Y"))
+  
+  result <- fisher.test(data2, alternative = "two.sided", conf.int = TRUE)
+  chi <- chisq.test(data2, correct = FALSE)
+  chiYates  <- chisq.test(data2, correct = TRUE)
+  
+  union_nect_tb = data2 %>% tibble() %>%
+    mutate(`odds ratio` = result$estimate,
+           `Confidence Interval (95%)_1` = result$conf.int[1],
+           `Confidence Interval (95%)_2` = result$conf.int[2],
+           `P-Value_fisher` = result$p.value,
+           `P-Value_chi` = chi$p.value,
+           `P-Value_chiYates` = chiYates$p.value,
+           acc_set = names(acc_list),
+           t2d_set = names(t2d_list),
+           n_way = n_way)
+}, SIMPLIFY = F,
+acc_list = rep(1:length(input_lists), each = length(t2d_lists)), 
+t2d_list = rep(1:length(t2d_lists), length(input_lists)),
+n_way = rep(2:4, each = length(input_lists)*length(t2d_lists)))
+
+# # check
+# acc_list = rep(1:length(input_lists), each = length(t2d_lists))
+# t2d_list = rep(1:length(t2d_lists), length(input_lists))
+# n_way = rep(2:4, each = length(input_lists)*length(t2d_lists))
+# rbind(acc_list, t2d_list, n_way)
+
+re_gene_tb = re_cnee %>% bind_rows()
+
+```
+
+## plot all
+```{r}
+re_tb_sel = re_gene_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set != 'union')
+
+# plot
+dft = re_tb_sel[, -c(1)] %>% 
+  distinct() %>%
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = `P-Value_fisher`) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, 'Y', 'N'),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+N = 2
+y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+y_lim = 5
+
+p = ggplot(dft, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0.05,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)
+                     ) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  facet_grid(n_way~t2d_set) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+graph_path = paste0(out_path, "/Fisher_cneelv_all_SuzukiST6clusters_exactlyNway_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*1, pointsize = AxisTxFontSizeSize, onefile = TRUE)
+p
+dev.off()
+openfile(graph_path)
+
+```
+
+# >=2 way convergent - cnee lv
+test all genes if convergently acc. (>=2 way) associated genes are also associated with t2d genes
+-> no
+```{r}
+
+# input_lists = list(nectar_acc,
+#                    nonnectar_acc)
+# names(input_lists) <- c("nectar",
+#                         "nonnectar")
+#   
+# t2d_lists = list( t2d_annow)
+# names(t2d_lists) <- c("t2d_weak")
+
+re_cnee = mapply(FUN = function(acc_list_ind, t2d_list_ind){
+  # acc_list_ind = 1
+  # t2d_list_ind = 1
+  # n_way = 4
+  
+  acc_list = input_lists[acc_list_ind]
+  t2d_list = t2d_lists[t2d_list_ind]
+  print(paste(names(acc_list), names(t2d_list)))
+  
+  nectar_conv_nway = acc_list[[1]] %>% 
+    group_by(id) %>% 
+    summarise(n_clade = n_distinct(group)) %>% 
+    filter(n_clade == n_way)
+  
+  conv = allcnees %>% dplyr::select(-gene) %>% distinct() %>%
+    mutate(conv = ifelse(id %in% nectar_conv_nway$id, 1, 0)) %>% 
+    distinct(id, .keep_all = TRUE)
+  t2d = allcnees %>% dplyr::select(-gene) %>% distinct() %>%
+    mutate(t2d = ifelse(id %in% t2d_list[[1]]$id, 1, 0)) %>% 
+    distinct(id, .keep_all = TRUE)
+  
+  tmp = conv %>% full_join(t2d)
+  data = table(tmp$conv, tmp$t2d, useNA = 'ifany', deparse.level = 2)
+  
+  data2 = matrix(c(data[2], data[1], data[4], data[3]), nrow = 2, ncol = 2)
+  dimnames(data2) = list(c("conv_Y", "conv_N"), c("t2d_N", "t2d_Y"))
+  
+  result <- fisher.test(data2, alternative = "two.sided", conf.int = TRUE)
+  chi <- chisq.test(data2, correct = FALSE)
+  chiYates  <- chisq.test(data2, correct = TRUE)
+  
+  union_nect_tb = data2 %>% tibble() %>%
+    mutate(`odds ratio` = result$estimate,
+           `Confidence Interval (95%)_1` = result$conf.int[1],
+           `Confidence Interval (95%)_2` = result$conf.int[2],
+           `P-Value_fisher` = result$p.value,
+           `P-Value_chi` = chi$p.value,
+           `P-Value_chiYates` = chiYates$p.value,
+           acc_set = names(acc_list),
+           t2d_set = names(t2d_list))
+}, SIMPLIFY = F,
+acc_list = rep(1:length(input_lists), each = length(t2d_lists)), 
+t2d_list = rep(1:length(t2d_lists), length(input_lists)))
+
+# # check
+# acc_list = rep(1:length(input_lists), each = length(t2d_lists))
+# t2d_list = rep(1:length(t2d_lists), length(input_lists))
+# n_way = rep(2:4, each = length(input_lists)*length(t2d_lists))
+# rbind(acc_list, t2d_list, n_way)
+
+re_gene_tb = re_cnee %>% bind_rows()
+
+```
+
+## plot all
+```{r}
+re_tb_sel = re_gene_tb %>% 
+  mutate(t2d_set = gsub("t2d_", "", t2d_set),
+         acc_set = gsub("_acc", "", acc_set)) %>% 
+  filter(t2d_set != 'union')
+
+# plot
+dft = re_tb_sel[, -c(1)] %>% 
+  distinct() %>%
+  # filter(set == 'nectar') %>% 
+  dplyr::rename(`P-Value` = `P-Value_fisher`) %>% 
+  mutate(sig = ifelse(`P-Value`<0.05, 'Y', 'N'),
+         `P-Value2` = ifelse(`P-Value`<10^-16, 10^-16, `P-Value`),
+         lab = paste0("P = ", signif(`P-Value2`, digits = 1))) 
+dft$sig = factor(dft$sig, levels = c('N', 'Y'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'intermediate', 'weak', 'union'))
+# dft$t2d_set = factor(dft$t2d_set, levels = c('strong', 'weak', 'new', 'new_0.75',  'plus', 'plus_0.75'))
+
+unique(dft$acc_set)
+dft$acc_set = factor(dft$acc_set, levels = c("nectar", "nonnectar", 
+                                             "hummingbird", "swift",
+                                             "parrot", "falcon",
+                                             "honeyeater", "lyrebird",
+                                             "sunbird", "passeride",
+                                             "nect_absrel", "nonnect_absrel"))
+
+N = 2
+y_lim = ceiling(max(dft$`Confidence Interval (95%)_2`)/N)*N
+y_lim = 3
+
+p = ggplot(dft, aes(x = acc_set, color = sig)) +
+  geom_hline(yintercept = 1, color = 'red', linetype = 2, linewidth = 0.25) +
+  geom_point(aes( y = `odds ratio`), size = 0.75) +
+  geom_errorbar(aes(ymin = `Confidence Interval (95%)_1`, 
+                    ymax = `Confidence Interval (95%)_2`), width = 0) +
+  geom_text(aes(label = lab, y = `Confidence Interval (95%)_2`), vjust = -0.5, size = FontSize*0.5) +
+  scale_y_continuous(expand = c(0,0,0.05,0),
+                     limits = c(0, y_lim),
+                     breaks = seq(0, y_lim, by = 2)) +
+  scale_color_manual(values = c('grey70', 'black'), drop = F) +
+  facet_grid(.~t2d_set) +
+  theme_m +
+  theme(axis.title.x = element_blank(),
+        # axis.ticks.x = element_blank(),
+        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.text.y = element_text(hjust = 1),
+        axis.line = element_line(colour = "black"),
+        # panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = 'none'); p
+
+
+graph_path = paste0(out_path, "/Fisher_cneelv_all_SuzukiST6clusters_eqgt2way_", Sys.Date(), ".pdf")
+pdf(graph_path, width = Width_HalfCol*2, height = Width_HalfCol*0.5, pointsize = AxisTxFontSizeSize, onefile = TRUE) 
+p
+dev.off()
+openfile(graph_path)
+
+```
+
+# @ square plot - absrel, phyloacc, with control
+```{r}
+
+nectar_acc1 = nectar_acc %>% 
+  dplyr::select(-id) %>% distinct() %>% 
+  mutate(val = 1, analysis = "PhyloAcc", class = "nectar")
+nonnectar_acc1 = nonnectar_acc %>% 
+  dplyr::select(-id) %>% distinct() %>% 
+  mutate(val = 1, analysis = "PhyloAccControl", class = "nonnectar")
+
+absrel_nect1 = absrel_nect %>% mutate(analysis = "aBSREL", class = "nectar")
+absrel_nonnect1 = absrel_nonnect %>% mutate(analysis = "aBSRELControl", class = "nonnectar")
+
+combined_nectar = nectar_acc1 %>% bind_rows(absrel_nect1) %>% 
+  group_by(gene) %>% 
+  mutate(n_clades = n_distinct(group),
+         n_ana = n_distinct(analysis)) 
+combined_nonnectar = nonnectar_acc1 %>% bind_rows(absrel_nonnect1) 
+
+combined = combined_nectar %>% 
+  bind_rows(combined_nonnectar) %>% 
+  dplyr::rename(clade = group) %>% 
+  mutate(fillcol = analysis) 
+dim(combined) # 20433     8
+
+unique(combined$clade)
+combined$clade = factor(combined$clade, levels = c("hummingbirds", "parrots", "honeyeaters", "sunbirds",
+                                                   "swifts", "falcons", "lyrebirds", "passerides" ))
+combined$class = factor(combined$class, levels = c("nectar",
+                                                   "nonnectar" ))
+
+# make df for visualizing cubic 
+unique(combined$analysis)
+combined1 = combined %>% filter(analysis %in% c("aBSREL", "aBSRELControl")) %>% 
+  mutate(newlabY = "1")
+combined2 = combined %>% filter(analysis %in% c("PhyloAcc", "PhyloAccControl")) %>% 
+  mutate(newlabY = "2")
+
+combinedc = combined1 %>% bind_rows(combined2) %>% 
+  mutate(newlabX = ifelse(class %in% c("nectar"), "1", "2")) #%>% 
+  # distinct()
+
+combinedc = combinedc %>% 
+  mutate(newlabZ = case_when(clade %in% c("hummingbirds", "swifts") ~ 1,
+                             clade %in% c("parrots", "falcons") ~ 2,
+                             clade %in% c("honeyeaters", "lyrebirds") ~ 3,
+                             clade %in% c("sunbirds", "passerides") ~ 4,
+                            .default = NA)) %>% 
+  # make complete so missing values will have a grey edge
+  ungroup() %>% 
+  tidyr::complete(gene, newlabX, newlabY, newlabZ)
+
+dim(combinedc) # 110160     11
+unique(combinedc$newlabX)
+unique(combinedc$newlabY)
+unique(combinedc$fillcol)
+
+# # sort factors
+combinedc$analysis = factor(combinedc$analysis, levels = c("aBSREL", "aBSRELControl", "PhyloAcc", "PhyloAccControl"))
+combinedc$fillcol = factor(combinedc$fillcol, levels = c("aBSREL", "aBSRELControl", "PhyloAcc", "PhyloAccControl", NA))
+# combinedc$clade = factor(combinedc$clade, levels = c("Hummingbirds", "Psittacidae", "Honeyeaters", "Sunbirds"))
+
+brewer.pal('Set1', n = 9) # 
+col_absrel = alpha("#FF7F00", 0.7)  # orange
+# col_csubst =  alpha("#4DAF4A", 0.7)  # turquoise  
+col_phyloacc = alpha("#984EA3", 0.7)  # purple
+# col_diff = alpha("grey50", 0.4)  # grey
+
+col_absrel_control = alpha("#FF7F00", 0.3)  # orange
+col_phyloacc_control = alpha("#984EA3", 0.3)  # purple
+
+```
+
+# plot func
+```{r}
+plot_function_vertical_smallspacing_withcontrol = function(s){
+  # s = interested_gene
+  # s = c("TIMM22", "AGK")
+  print(s)
+  input_data_sel = combinedc %>% filter(gene %in% s)
+  if(nrow(input_data_sel) == 0){'no gene'}
+  input_data_sel$gene = factor(input_data_sel$gene, levels = s)
+  
+  p = ggplot(input_data_sel, aes(y = newlabX, x = newlabY, fill = fillcol)) +
+    # geom_tile(color = 'grey60', linewidth = 0.1) +
+    geom_tile(color = 'white', linewidth = 0.1) +
+    geom_tile() + # maude likes no internal grid
+    facet_grid(gene~newlabZ) +
+    scale_y_discrete(limits = rev, expand = c(0,0)) +
+    scale_x_discrete(expand = c(0,0)) +
+    scale_fill_manual(values = c(col_absrel, col_absrel_control,
+                                 col_phyloacc, col_phyloacc_control), 
+                      na.value = 'white', na.translate = F, drop = F) + 
+    # guides(fill = guide_legend(nrow = 3, byrow = T)) +
+    theme_m +
+    theme(axis.title.x = element_blank(), 
+          axis.title.y = element_blank(), 
+          axis.ticks = element_blank(),
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          strip.background = element_blank(),
+          # strip.text.x = element_text(angle = 45, vjust = 0.5), # main fig
+          # strip.text.x = element_text(angle = 90, hjust = 0), 
+          strip.text.x = element_text(angle = 90, hjust = 0, vjust = 1, size = FontSize), # small: fontsize*0.5
+          strip.text.y = element_text(angle = 0, hjust = 0, size = FontSize, face="italic" ), # small: fontsize*0.5
+          axis.line = element_blank(),
+          panel.spacing = unit(0.5, 'pt'), # ori:2; small: 1
+          # plot.margin = margin(0, 0, 0, 0, "line"), # trbl
+          # legend.key.size = unit(5, 'pt'), # ori: 5
+          panel.border = element_rect(color = "grey50", fill= NA, linewidth =.2), # ori 0.5; small: 0.3
+          legend.position = 'none'); p
+}
+
+interested_gene2 = c("FANCM", "HK3", "HYAL1", "DPP10", "SLC2A5", "ANO1") # "IRS1"
+plot_function_vertical_smallspacing_withcontrol(interested_gene2)
+```
+
+
+# Beta cell -PI
+```{r}
+input = t6 %>% filter(cluster_assignment == "Beta cell -PI") %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana)) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 131; n_clades==4: 11
+
+p = plot_function_vertical_smallspacing_withcontrol(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_betacell-PI_vert_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.0075*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+
+# Beta cell +PI
+```{r}
+input = t6 %>% filter(cluster_assignment == "Beta cell +PI") %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana)) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 131; n_clades==4: 11
+
+p = plot_function_vertical_smallspacing_withcontrol(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_betacellPI_vert_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.006*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# Body fat
+```{r}
+input = t6 %>% filter(cluster_assignment == "Body fat") %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana)) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 131; n_clades==4: 11
+
+p = plot_function_vertical_smallspacing_withcontrol(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_bodyfat_vert_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.006*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# Obesity
+```{r}
+input = t6 %>% filter(cluster_assignment == "Obesity") %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana), distance_from_cluster_centroid) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 293; n_clades==4: 
+
+p = plot_function_vertical_smallspacing_withcontrol(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_Obesity_vert_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.006*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# @ square plot - absrel, phyloacc
+```{r}
+
+nectar_acc1 = nectar_acc %>% 
+  dplyr::select(-id) %>% distinct() %>% 
+  mutate(val = 1, analysis = "PhyloAcc")
+
+absrel_nect1 = absrel_nect %>% mutate(analysis = "aBSREL")
+
+combined_nectarOnly = nectar_acc1 %>% bind_rows(absrel_nect1) %>% 
+  group_by(gene) %>% 
+  mutate(n_clades = n_distinct(group),
+         n_ana = n_distinct(analysis)) %>% 
+  dplyr::rename(clade = group) %>% 
+  mutate(fillcol = analysis) 
+dim(combined_nectarOnly) # 213760     7
+
+unique(combined_nectarOnly$clade)
+combined_nectarOnly$clade = factor(combined_nectarOnly$clade, levels = c("hummingbirds", "parrots", "honeyeaters", "sunbirds"))
+
+# make df for visualizing cubic 
+combined_nectarOnlyc = combined_nectarOnly %>% 
+  mutate(newlabX = ifelse(analysis %in% c("aBSREL"), "1", "2")) %>% 
+  # make complete so missing values will have a grey edge
+  ungroup() %>% 
+  tidyr::complete(gene, newlabX, clade)
+
+dim(combined_nectarOnlyc) # 45440     8
+unique(combined_nectarOnlyc$newlabX)
+unique(combined_nectarOnlyc$fillcol)
+
+# # sort factors
+combined_nectarOnlyc$analysis = factor(combined_nectarOnlyc$analysis, levels = c("aBSREL", "PhyloAcc"))
+combined_nectarOnlyc$fillcol = factor(combined_nectarOnlyc$fillcol, levels = c("aBSREL", "PhyloAcc", NA))
+# combinedc$clade = factor(combinedc$clade, levels = c("Hummingbirds", "Psittacidae", "Honeyeaters", "Sunbirds"))
+
+brewer.pal('Set1', n = 9) # 
+col_absrel = alpha("#FF7F00", 0.7)  # orange
+# col_csubst =  alpha("#4DAF4A", 0.7)  # turquoise  
+col_phyloacc = alpha("#984EA3", 0.7)  # purple
+# col_diff = alpha("grey50", 0.4)  # grey
+
+
+```
+
+# plot func
+```{r}
+plot_function_vertical_smallspacing_2methods = function(s){
+  # s = interested_gene
+  # s = c("TIMM22", "AGK")
+  print(s)
+  input_data_sel = combined_nectarOnlyc %>% filter(gene %in% s)
+  if(nrow(input_data_sel) == 0){'no gene'}
+  input_data_sel$gene = factor(input_data_sel$gene, levels = s)
+  
+  p = ggplot(input_data_sel, aes(y = newlabX, x = 1, fill = fillcol)) +
+    # geom_tile(color = 'grey60', linewidth = 0.1) +
+    geom_tile(color = 'white', linewidth = 0.1) +
+    geom_tile() + # maude likes no internal grid
+    facet_grid(gene~clade) +
+    scale_y_discrete(limits = rev, expand = c(0,0)) +
+    scale_x_discrete(expand = c(0,0)) +
+    scale_fill_manual(values = c(col_absrel, col_phyloacc), 
+                      na.value = 'white', na.translate = F, drop = F) + 
+    # guides(fill = guide_legend(nrow = 3, byrow = T)) +
+    theme_m +
+    theme(axis.title.x = element_blank(), 
+          axis.title.y = element_blank(), 
+          axis.ticks = element_blank(),
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          strip.background = element_blank(),
+          # strip.text.x = element_text(angle = 45, vjust = 0.5), # main fig
+          # strip.text.x = element_text(angle = 90, hjust = 0), 
+          strip.text.x = element_text(angle = 90, hjust = 0, vjust = 1, size = FontSize), # small: fontsize*0.5
+          strip.text.y = element_text(angle = 0, hjust = 0, size = FontSize, face="italic" ), # small: fontsize*0.5
+          axis.line = element_blank(),
+          panel.spacing = unit(0.5, 'pt'), # ori:2; small: 1
+          # plot.margin = margin(0, 0, 0, 0, "line"), # trbl
+          # legend.key.size = unit(5, 'pt'), # ori: 5
+          panel.border = element_rect(color = "grey50", fill= NA, linewidth =.2), # ori 0.5; small: 0.3
+          legend.position = 'none'); p
+}
+
+interested_gene2 = c("FANCM", "HK3", "HYAL1", "DPP10", "SLC2A5", "ANO1") # "IRS1"
+plot_function_vertical_smallspacing_2methods(interested_gene2)
+```
+
+# Beta cell -PI & Beta cell +PI
+```{r}
+input = t6 %>% filter(cluster_assignment %in% c("Beta cell -PI", "Beta cell +PI")) %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana), distance_from_cluster_centroid) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 208; n_clades==4: 
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_betacell+-PI_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.0075*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# Beta cell -PI 
+```{r}
+input = t6 %>% filter(cluster_assignment %in% c("Beta cell -PI")) %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana), distance_from_cluster_centroid) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 208; n_clades==4: 
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_betacell-PI_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.0075*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# Body fat
+```{r}
+input = t6 %>% filter(cluster_assignment == "Body fat") %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana), distance_from_cluster_centroid) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 131; n_clades==4: 11
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_bodyfat_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.006*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# Liver
+```{r}
+input = t6 %>% filter(cluster_assignment == "Liver/lipid metabolism") %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana), distance_from_cluster_centroid) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 9; n_clades==4: 
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_liver_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.02*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# Obesity
+```{r}
+input = t6 %>% filter(cluster_assignment == "Obesity") %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana), distance_from_cluster_centroid) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 293; n_clades==4: 
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_Obesity_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.006*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# highly connected genes
+```{r}
+x = t6 %>% group_by(gene) %>% 
+  mutate(n_clusters = n_distinct(cluster_assignment)) %>% 
+  dplyr::select(gene, cluster_assignment, ori, n_clusters) %>% distinct() %>% 
+  arrange(desc(n_clusters), gene)
+xx = x %>% filter(n_clusters>=5) %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana))
+n_distinct(xx$gene)
+
+
+input = xx %>% pull(gene) %>% unique()
+n_distinct(input) # 293; n_clades==4: 
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_morethan5clusters_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.01*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# genes in Beta cell -PI, Beta cell +PI, and Body fat
+```{r}
+x = t6 %>% 
+  filter(cluster_assignment %in% c("Beta cell -PI", "Beta cell +PI", "Body fat")) %>% 
+  group_by(gene) %>% 
+  mutate(n_clusters = n_distinct(cluster_assignment)) %>% 
+  dplyr::select(gene, cluster_assignment, ori, n_clusters) %>% distinct() %>% 
+  arrange(desc(n_clusters), gene)
+
+xx = x %>% filter(n_clusters ==3 ) %>% 
+  left_join(combined_nectar) %>% 
+  arrange(desc(n_clades), desc(n_ana))
+n_distinct(xx$gene) # 29
+
+input = xx %>% pull(gene) %>% unique()
+n_distinct(input) # 293; n_clades==4: 
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_T2dSuzuki2024_inthe3clusters_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.0125*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# regulation of insulin secretion involved in cellular response to glucose stimulus
+```{r}
+input = c("EFNA5", "EPHA5", "BRSK2", "ADCY5", "NR1H4", "ABCA12", "NR1D1")
+n_distinct(input) # 293; n_clades==4: 
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_regulationofinsulin_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.04*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# regulation of blood pressure
+```{r}
+x = c("ADRA1A", "DLL1", "EDN1", "EDNRA", "EDNRB", "ERAP1", "EXT1", "KCNQ1", "NPR3", "SGK1", "STK39", "TRHDE", "PPARG", "SCNN1D", "SOD2", "AVPR1A", "BRS3", "ENPEP", "EXT2", "GBE", "NPY")
+
+xx = combined_nectarOnly %>% filter( gene %in% x) %>% 
+  arrange(desc(n_clades), desc(n_ana))
+n_distinct(xx$gene) # 21
+
+input = xx %>% pull(gene) %>% unique()
+n_distinct(input) # 21
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_regulationobloodpressure_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.025*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+```
+
+# T2D-related GO terms (significant only)
+```{r}
+gene_sel_anno = read_tsv("/Users/mbp23/ownCloud/Baldwin/Projects/Nectar/Seq_Data/globus/CNEEanalysis_2021/03_phyloacc/2024ver/nectar_nodollo/great/plots/GO_interstedandsign_T2Drelated_pathways_anno.csv")
+
+tmp_pathways = unique(gene_sel_anno$goTerm)
+tmp_pathways
+
+p = lapply(tmp_pathways[5:length(tmp_pathways)], function(s){
+  s = tmp_pathways[1] # 0.035
+  s = tmp_pathways[4] # 0.0225
+  s = tmp_pathways[14] # 0.045
+  print(s)
+  
+  gene_sel_anno_tmp = gene_sel_anno %>% filter(goTerm == s)
+  
+  xx = combined_nectarOnly %>% filter( gene %in% gene_sel_anno_tmp$gene) %>% 
+  arrange(desc(n_clades), desc(n_ana))
+  n_distinct(xx$gene) # 21
+
+  input = xx %>% pull(gene) %>% unique()
+  n_distinct(input) # 21
+  
+  p = plot_function_vertical_smallspacing_2methods(input)
+  graph_path = paste0(project_path, "/SquarePlor_", s, "_vert_noControl_", Sys.Date(),".pdf"); graph_path
+  pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.045*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+  print(p)
+  dev.off()
+  openfile(file = graph_path)
+  # print(graph_path)
+
+})
+
+```
+
+# strong
+```{r}
+
+input = t2d_anno %>% filter(evidence == "strong") %>% 
+  left_join(t6) %>% 
+  left_join(combined_nectar) %>% 
+  dplyr::select(gene, cluster_assignment, n_clades, n_ana) %>% distinct() %>% 
+  arrange(desc(n_clades), desc(n_ana), cluster_assignment) #%>% filter(n_clades == 4)
+input = input %>% pull(gene) %>% unique()
+n_distinct(input) # 131; n_clades==4: 11
+
+p = plot_function_vertical_smallspacing_2methods(input)
+graph_path = paste0(project_path, "SquarePlor_T2dstrong_vert_noControl_", Sys.Date(),".pdf"); graph_path
+pdf(graph_path, width = Width_HalfCol*0.25, height = Width_HalfCol*0.01*length(input), pointsize = AxisTxFontSizeSize) # middle, after adding gene list
+p
+dev.off()
+openfile(file = graph_path)
+
+x = t2d_anno %>% filter(evidence == "strong") %>% 
+  left_join(t6) %>% 
+  arrange(cluster_assignment) 
+```
