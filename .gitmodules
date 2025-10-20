@@ -7,3 +7,6 @@
 [submodule "#"]
 	path = "#"
 	url = https://github.com/osipovarev/Assembly_and_annotation
+[submodule "Assembly_and_annotation"]
+	path = Assembly_and_annotation
+	url = https://github.com/osipovarev/Assembly_and_annotation
