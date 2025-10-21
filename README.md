@@ -6,7 +6,7 @@ A comparative genomics analysis pipeline associated with the preprint: [Converge
 
 This repository contains genomic analysis workflows for investigating the molecular basis of nectarivory adaptation across multiple bird species. The analyses include:
 
-- **Assembly_and_annotation**: Genome assemble and annotation
+- **Assembly_and_annotation**: Genome assembly and annotation
 - **CNEE Analysis (2021)**: Identification and analysis of conserved non-coding elements across bird genomes
 - **Convergent Substitution Analysis (csubst)**: Detection of convergent molecular evolution
 - **Positive Selection Analysis (absrel)**: Adaptive branch-site random effects likelihood tests
@@ -16,7 +16,7 @@ This repository contains genomic analysis workflows for investigating the molecu
 
 ```
 nectargenomics/
-├── Assembly_and_annotation  # Genome assemble and annotation (submodule)
+├── Assembly_and_annotation  # Genome assembly and annotation (submodule)
 ├── absrel/                  # Positive selection analysis (submodule)
 ├── csubst/                  # Convergent substitution analysis
 │   ├── 00_inputs/           # Input sequences and species lists
