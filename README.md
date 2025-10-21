@@ -2,6 +2,8 @@
 
 A comparative genomics analysis pipeline associated with the preprint: [Convergent and lineage-specific genomic changes shape adaptations in sugar-consuming birds.](https://www.biorxiv.org/content/10.1101/2024.08.30.610474v1)
 
+[![DOI](https://zenodo.org/badge/260459714.svg)](https://doi.org/10.5281/zenodo.17403724)
+
 ## Overview
 
 This repository contains genomic analysis workflows for investigating the molecular basis of nectarivory adaptation across multiple bird species. The analyses include:
